@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Brain/Brain.csproj" />
+  <Project Path="Electrode/Electrode.csproj" />
+</Solution>
