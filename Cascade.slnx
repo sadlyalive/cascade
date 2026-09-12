@@ -1,4 +1,4 @@
 <Solution>
   <Project Path="Brain/Brain.csproj" />
-  <Project Path="Electrode/Electrode.csproj" />
+  <Project Path="ElectrodeConsole/ElectrodeConsole.csproj" />
 </Solution>

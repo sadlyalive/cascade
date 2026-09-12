@@ -1,0 +1,22 @@
+root = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+charset = utf-8-bom
+insert_final_newline = true
+
+# Standard EditorConfig property. VS's own formatter doesn't hard-wrap on this,
+# but Rider/ReSharper flag lines past it, and it documents the intended limit.
+max_line_length = 120
+
+# Non-standard property read by the "Editor Guidelines" VS extension to draw
+# vertical ruler lines in the editor. Install it from Extensions > Manage
+# Extensions (search "Editor Guidelines") to actually see these.
+guidelines = 80, 120
+
+[Brain/src/**.cs]
+# src/ exists only as the boundary the Unity junction links to, not a real
+# namespace grouping — everything in it still declares `namespace Brain;`.
+# Without this, VS nags to rename it to `Brain.Src` to match the folder.
+dotnet_diagnostic.IDE0130.severity = none

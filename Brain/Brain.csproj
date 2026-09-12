@@ -1,9 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- net10.0 is the real target (what ElectrodeConsole builds against).
+         netstandard2.1 is built alongside purely as a tripwire: it's roughly
+         the API ceiling Unity's Mono/IL2CPP runtime exposes, so if this build
+         fails on that TFM, Unity would have rejected the same code too. -->
+    <TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks>
+    <!-- Off, deliberately: ImplicitUsings generates a file inside obj/ that
+         Unity's compiler never sees. If it were on, code here could compile
+         under dotnet while silently depending on usings Unity doesn't have. -->
+    <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Match csc.rsp (Unity side) so both TFMs fail on the same things for
+         the same reason, instead of netstandard2.1 also tripping over syntax
+         its default language version predates. -->
+    <LangVersion>12</LangVersion>
   </PropertyGroup>
 
 </Project>

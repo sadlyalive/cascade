@@ -75,6 +75,10 @@ StyleCopReport.xml
 *_h.h
 *.ilk
 *.meta
+# except unity's own metadata located in the linked source folder. losing them
+# forces unity to make new ones which silently breaks anything that referenced
+# original GUIDs (e.g. a component on a GameObject)
+!Brain/src/**.meta
 *.obj
 *.iobj
 *.pch
@@ -83,6 +87,9 @@ StyleCopReport.xml
 *.pgc
 *.pgd
 *.rsp
+# except the per-assembly compiler response file used to raise the c# language
+# version for a Unity assembly definition
+!**/csc.rsp
 *.sbr
 *.tlb
 *.tli
