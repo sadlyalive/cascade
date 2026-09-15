@@ -15,8 +15,26 @@ max_line_length = 120
 # Extensions (search "Editor Guidelines") to actually see these.
 guidelines = 80, 120
 
+# IDE0090: prefer `T x = new();` over `T x = new T();` when the type is already
+# stated on the same line (VS then greys out the redundant type name and offers
+# a lightbulb fix). It only fires when the type is apparent from that same
+# statement — a field assigned later in a constructor (`Neurons = new NeuronPool(count);`)
+# doesn't count, so those stay fully spelled out without a separate rule for it.
+csharp_style_implicit_object_creation_when_type_is_apparent = true:suggestion
+
 [Brain/src/**.cs]
 # src/ exists only as the boundary the Unity junction links to, not a real
 # namespace grouping — everything in it still declares `namespace Brain;`.
 # Without this, VS nags to rename it to `Brain.Src` to match the folder.
+dotnet_diagnostic.IDE0130.severity = none
+
+[Electrode/Assets/Brain/**.cs]
+# Same physical files as Brain/src/**.cs above — Assets/Brain is a junction to
+# Brain/src. EditorConfig matches against whatever logical path the currently
+# active project declares for a file, not its real on-disk location, so a file
+# reached through Unity's own generated solution shows up under THIS path
+# instead, and the section above alone doesn't cover it. If Brain's source ever
+# gets linked into a third project, that project's own path needs a section
+# here too — this has to be listed per alias path, there's no way to match
+# "any project that happens to link this folder" in one glob.
 dotnet_diagnostic.IDE0130.severity = none

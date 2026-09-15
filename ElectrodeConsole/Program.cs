@@ -1,4 +1,5 @@
 ﻿using Brain;
+using ElectrodeConsole;
 
 internal class Program
 {
@@ -10,16 +11,17 @@ internal class Program
 
         // lower values: neurons will go silent
         // higher values: overexcitation
-        network.WireRandom(connectChance: 0.35f, minWeight: 3.0f, maxWeight: 8.0f, seed: 7);
+        Generators.WireRandom(network, meanDegree: 7f, minWeight: 3.0f, maxWeight: 8.0f, seed: 7);
 
         // inject current into a few neurons so activity can actually occur
         for (int i = 0; i < 5; i++)
-            network.Neurons[i].SetInputCurrent(3.5f);
+            network.Neurons[i].InputCurrent = 3.5f;
 
-        const float dt = 0.5f;   // ms/step
+        const double dtMs = 0.5;
+        TimeSpan dt = TimeSpan.FromMilliseconds(dtMs);
         const int steps = 200;
 
-        Console.WriteLine($"Simulating {neuronCount} neurons for {steps * dt:0} ms");
+        Console.WriteLine($"Simulating {neuronCount} neurons for {steps * dtMs:0} ms");
         Console.WriteLine("Each column is one neuron; '|' marks a spike.\n");
         Console.WriteLine($"time(ms) | {string.Concat(Enumerable.Range(0, neuronCount).Select(i => i % 10))}");
         Console.WriteLine(new string('-', 11 + neuronCount));
@@ -45,7 +47,7 @@ internal class Program
 
             // only print rows where something happened to keep output readable
             if (spikes > 0)
-                Console.WriteLine($"{step * dt,7:0.0}  | {new string(row)}");
+                Console.WriteLine($"{step * dtMs,7:0.0}  | {new string(row)}");
         }
 
         Console.WriteLine($"\n{totalSpikes} spikes total.");

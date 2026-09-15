@@ -45,39 +45,16 @@ public sealed class Network
         => Weight[post * Count + pre] = weight;
 
     /// <summary>
-    /// <para>Randomly wire the network.</para>
-    /// <para>Every ordered pair <c>(pre, post)</c> such that <c>pre != post</c> has a <paramref name="connectChance"/>% chance of receiving a uniformly random weight along <c>[<paramref name="minWeight"/>, <paramref name="maxWeight"/>)</c>.</para>
+    /// <para>Advance the simulation by <paramref name="elapse"/>.</para>
+    /// <para>Accepts a <see cref="TimeSpan"/> for convenience and uses milliseconds internally.</para>
     /// </summary>
-    public void WireRandom(float connectChance, float minWeight, float maxWeight, int? seed = null)
+    public void Step(TimeSpan elapse)
     {
-        // newer Random.Shared/rng.NextSingle() do not exist in .NET-Standard-2.1 which unity Mono/IL2CPP runtime uses,
-        // so library needs to stick to the older usings instead
-        Random rng = seed is null ? new Random() : new Random(seed.Value);
-
-        for (int post = 0; post < Count; post++)
-        {
-            int row = post * Count;
-
-            for (int pre = 0; pre < Count; pre++)
-            {
-                if (pre == post)
-                    continue;
-
-                if ((float)rng.NextDouble() < connectChance)
-                    Weight[row + pre] = minWeight + (float)rng.NextDouble() * (maxWeight - minWeight);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Advance the simulation by <paramref name="dt"/> milliseconds.
-    /// </summary>
-    public void Step(float dt)
-    {
+        float dt = (float)elapse.TotalMilliseconds;
         NeuronPool n = Neurons;
         int count = Count;
 
-        // single-arg Array.Clear(arr) is also post 2.1 only
+        // TODO: change to single-arg Array.Clear(arr) on unity 6.8 CoreCLR
         Array.Clear(_current, 0, _current.Length);
 
         // gather synaptic current from last step. n.Spike still holds previous results which means dt bottlenecks

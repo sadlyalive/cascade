@@ -1,6 +1,4 @@
-# Unity regenerates all of this from Assets/ + Packages/ + ProjectSettings/ on open.
-# None of it is source — don't commit it.
-
+# unity regenerates all of this from Assets/, Packages/, and ProjectSettings/
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
@@ -36,24 +34,19 @@ crashlytics-build.properties
 *.unitypackage
 *.app
 
-# The repo's root .gitignore has a NuGet rule ("**/[Pp]ackages/*") that would
-# otherwise also swallow Unity's Packages/ folder here. Re-include the two
-# files that actually need to be committed — they pin your package versions.
+# root .gitignore has a NuGet rule ("**/[Pp]ackages/*") that would
+# otherwise also swallow the unity Packages/ folder
 !Packages/manifest.json
 !Packages/packages-lock.json
 
-# The root .gitignore also has a blanket "*.meta" rule (meant for an unrelated,
-# much older VS convention) that would otherwise swallow every real Unity
-# per-asset metadata file in this project. Those need to be committed — each
-# one stores the GUID Unity uses to identify that asset, which scenes and
-# prefabs reference directly; losing them lets Unity mint new GUIDs on the
-# next reimport and silently breaks anything that pointed at the old ones.
+# root .gitignore has a blanket "*.meta" rule meant for an unrelated VS
+# convention. it matches unity metadata files which unity uses to map scripts
+# to components persistently
 !*.meta
 !**/*.meta
 
-# Assets/Brain is an NTFS junction to ../../Brain/src (Brain's real, tracked
-# location). Git follows junctions when walking the tree, so without this it
-# would see and commit every file in there a second time, under this alias
-# path — meta files included, despite the re-include above. The junction only
-# exists on disk for Unity's benefit; it has no git identity of its own.
+# exclude directory link to brain lib so it doesn't get committed twice
 Assets/Brain/
+
+# AI assistant bridge
+ProjectSettings/AI.Assistant/
