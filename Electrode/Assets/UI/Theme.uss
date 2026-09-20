@@ -1,0 +1,31 @@
+:root {
+    --row-pad: 8px;
+    --dark: rgb(42, 42, 48);
+    --neutral: rgb(96, 96, 128);
+    --bright: rgb(224, 224, 256);
+
+    color: var(--bright);
+    -unity-font-definition: url("project://database/Assets/UI/Fonts/Montserrat-Regular.ttf?fileID=12800000&guid=a9f4557353ba3924ba526318b5082f53&type=3#Montserrat-Regular");
+}
+
+/* override unity default spacing for finer control */
+.unity-label {
+    padding: 0;
+    margin: 0;
+}
+
+.row-spacer {
+    margin: 0 var(--row-pad) 0 0;
+}
+
+.topbar {
+    width: 100%;
+    height: 32px;
+    padding: 0 0 0 var(--row-pad);
+
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+
+    background-color: rgb(64, 64, 96);
+}

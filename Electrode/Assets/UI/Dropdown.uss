@@ -1,0 +1,60 @@
+/*
+ * Hover menus built by MenuBuilder. Every node is a .menu-node and, if children, .menu-popup. :hover includes descendants, so MenuBuilder parents popups to their respective nodes.
+ */
+
+.menu-container {
+    flex-direction: row;
+    height: 100%;
+}
+
+.menu-root {
+    height: 100%;
+}
+
+.menu-node {
+    padding: var(--row-pad);
+}
+
+.menu-node > .unity-label {
+    height: 100%;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+}
+
+/* lower declaration takes precedence in css */
+.menu-root > .unity-label {
+    -unity-text-align: middle-center;
+}
+
+.menu-node:hover {
+    background-color: var(--neutral);
+}
+
+.menu-popup {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 128px;
+
+    background-color: var(--dark);
+}
+
+/* display popup if user hovers direct parent node */
+.menu-node:hover > .menu-popup {
+    display: flex;
+}
+
+/* nested popups open sideways from their item instead of below it */
+.menu-popup .menu-node > .menu-popup {
+    top: 0;
+    left: 100%;
+}
+
+.menu-arrow {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: var(--row-pad);
+    -unity-text-align: middle-right;
+}

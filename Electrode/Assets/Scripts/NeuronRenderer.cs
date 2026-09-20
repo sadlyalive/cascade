@@ -1,96 +1,107 @@
-﻿using Brain;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using UnityEngine;
 
-/// <summary>
-/// <para>Draws every neuron in a <see cref="Sandbox"/>'s pool as a GPU-instanced sphere via <see cref="Graphics.RenderMeshPrimitives"/>. The CPU fills the buffer, then the GPU positions and colors every instance.</para>
-/// </summary>
-[RequireComponent(typeof(Sandbox))]
-public sealed class NeuronRenderer : MonoBehaviour
+namespace Cascade
 {
-    private const string SHADER_PATH = "Custom/Soma";
-
-    // struct must match NeuronInstanced.shader in field order and types
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NeuronInstance
+    /// <summary>
+    ///     <para>
+    ///         Draws every neuron in a <see cref="Sandbox" />'s pool as a GPU-instanced sphere via
+    ///         <see cref="Graphics.RenderMeshPrimitives" />. The CPU fills the buffer, then the GPU positions and colors every
+    ///         instance.
+    ///     </para>
+    /// </summary>
+    [RequireComponent(typeof(Sandbox))]
+    public sealed class NeuronRenderer : MonoBehaviour
     {
-        public Vector3 Position;
-        public float Spike; // shader buffers do not support bool
-    }
+        private const string ShaderPath = "Custom/Soma";
 
-    [SerializeField] private float neuronScale = 0.08f;
+        private static readonly int NeuronBufferId = Shader.PropertyToID("_NeuronBuffer");
+        private static readonly int NeuronScaleId = Shader.PropertyToID("_NeuronScale");
 
-    private Sandbox _sandbox;
-    private Mesh _mesh;
-    private Material _material;
-    private GraphicsBuffer _instanceBuffer;
-    private NeuronInstance[] _instanceData;
-    private static readonly int NeuronBufferId = Shader.PropertyToID("_NeuronBuffer");
-    private static readonly int NeuronScaleId = Shader.PropertyToID("_NeuronScale");
+        [SerializeField] private float neuronScale = 0.08f;
+        private GraphicsBuffer _instanceBuffer;
+        private NeuronInstance[] _instanceData;
+        private Material _material;
+        private Mesh _mesh;
 
-    private void Awake()
-    {
-        _sandbox = GetComponent<Sandbox>();
+        private Sandbox _sandbox;
 
-        // grab default sphere mesh
-        GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-
-        _mesh = temp.GetComponent<MeshFilter>().sharedMesh;
-
-        Destroy(temp);
-
-        Shader shader = Shader.Find(SHADER_PATH);
-
-        if (shader == null)
+        private void Awake()
         {
-            Debug.LogError($"Shader \"{SHADER_PATH}\" not found");
-            enabled = false;
-            return;
+            _sandbox = GetComponent<Sandbox>();
+
+            // grab default sphere mesh
+            var temp = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+
+            _mesh = temp.GetComponent<MeshFilter>().sharedMesh;
+
+            Destroy(temp);
+
+            var shader = Shader.Find(ShaderPath);
+
+            if (shader == null)
+            {
+                Debug.LogError($"Shader \"{ShaderPath}\" not found");
+                enabled = false;
+                return;
+            }
+
+            _material = new Material(shader);
         }
 
-        _material = new Material(shader);
-    }
-
-    private void OnDisable()
-    {
-        _instanceBuffer?.Dispose();
-        _instanceBuffer = null;
-    }
-
-    // LateUpdate guarantees sandbox already stepped this frame
-    private void LateUpdate()
-    {
-        NeuronPool neurons = _sandbox.Network.Neurons;
-        int count = neurons.Count;
-
-        // lazily allocate since OnDisable clears buffer
-        if (_instanceBuffer is null)
+        // LateUpdate guarantees sandbox already stepped this frame
+        private void LateUpdate()
         {
-            _instanceData = new NeuronInstance[count];
-            _instanceBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, count, Marshal.SizeOf<NeuronInstance>());
+            var neurons = _sandbox.Network.Neurons;
+            var count = neurons.Count;
+
+            // lazily allocate since OnDisable clears buffer
+            if (_instanceBuffer is null)
+            {
+                _instanceData = new NeuronInstance[count];
+                _instanceBuffer = new GraphicsBuffer(
+                    GraphicsBuffer.Target.Structured,
+                    count,
+                    Marshal.SizeOf<NeuronInstance>()
+                );
+            }
+
+            // populate CPU-side array from the SoA arrays and ship it to the shader
+            // TODO: turn _instanceData into SoA (?)
+            for (var i = 0; i < count; i++)
+            {
+                _instanceData[i].Position = new Vector3(neurons.X[i], neurons.Y[i], neurons.Z[i]);
+                _instanceData[i].Spike = neurons.Spike[i] ? 1f : 0f;
+            }
+
+            _instanceBuffer.SetData(_instanceData);
+
+            var materialProperties = new MaterialPropertyBlock();
+
+            materialProperties.SetBuffer(NeuronBufferId, _instanceBuffer);
+            materialProperties.SetFloat(NeuronScaleId, neuronScale);
+
+            var renderParams = new RenderParams(_material)
+            {
+                // cull the whole draw only if this is off-screen entirely
+                worldBounds = new Bounds(transform.position, Vector3.one * 10000f), matProps = materialProperties
+            };
+
+            Graphics.RenderMeshPrimitives(renderParams, _mesh, 0, count);
         }
 
-        // populate CPU-side array from the SoA arrays and ship it to the shader
-        // TODO: turn _instanceData into SoA (?)
-        for (int i = 0; i < count; i++)
+        private void OnDisable()
         {
-            _instanceData[i].Position = new Vector3(neurons.X[i], neurons.Y[i], neurons.Z[i]);
-            _instanceData[i].Spike = neurons.Spike[i] ? 1f : 0f;
+            _instanceBuffer?.Dispose();
+            _instanceBuffer = null;
         }
-        _instanceBuffer.SetData(_instanceData);
 
-        var materialProperties = new MaterialPropertyBlock();
-
-        materialProperties.SetBuffer(NeuronBufferId, _instanceBuffer);
-        materialProperties.SetFloat(NeuronScaleId, neuronScale);
-
-        var renderParams = new RenderParams(_material)
+        // struct must match NeuronInstanced.shader in field order and types
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NeuronInstance
         {
-            // cull the whole draw only if this is off-screen entirely
-            worldBounds = new Bounds(transform.position, Vector3.one * 10000f),
-            matProps = materialProperties,
-        };
-
-        Graphics.RenderMeshPrimitives(renderParams, _mesh, 0, count);
+            public Vector3 Position;
+            public float Spike; // shader buffers do not support bool
+        }
     }
 }

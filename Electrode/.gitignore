@@ -48,5 +48,12 @@ crashlytics-build.properties
 # exclude directory link to brain lib so it doesn't get committed twice
 Assets/Brain/
 
-# AI assistant bridge
+# ai and package metadata
 ProjectSettings/AI.Assistant/
+ProjectSettings/Packages/
+
+# unity ui toolkit intellisense assist cache
+UIElementsSchema/
+
+# include rider project-specific settings
+!*.sln.DotSettings

@@ -1,0 +1,56 @@
+.time-menu {
+    width: 100%;
+    max-width: 256px;
+    height: 100%;
+    padding: 4px 0;
+
+    flex-direction: row;
+    align-items: center;
+}
+
+.time-menu .unity-float-field {
+    width: 64px;
+    height: 100%;
+    flex-shrink: 0;
+}
+
+.time-menu .unity-float-field .unity-float-field__label {
+    min-width: auto;
+    width: auto;
+    -unity-text-align: middle-left;
+    margin-right: var(--row-pad);
+}
+
+/* override label recolor on focus */
+.time-menu .unity-float-field:focus .unity-float-field__label {
+    color: var(--bright);
+}
+
+.time-menu .unity-float-field .unity-float-field__input {
+    background-color: var(--dark);
+    padding: 4px;
+}
+
+.time-menu .slider {
+    flex-grow: 1;
+    margin: 0;
+}
+
+.time-menu .unity-base-slider__drag-container {
+    justify-content: center; /* keep dragger vertically center on slider */
+}
+
+.time-menu .unity-base-slider__tracker {
+    background-color: var(--dark);
+    border-radius: 3px; /* half unity's base height (6px) */
+}
+
+.time-menu .unity-base-slider__dragger {
+    --d: 16px;
+
+    width: var(--d);
+    height: var(--d);
+    top: auto;
+
+    border-radius: 50%;
+}
