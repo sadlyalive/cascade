@@ -16,13 +16,13 @@ namespace Cascade
         private const string ShaderPath = "Custom/Soma";
 
         private static readonly int NeuronBufferId = Shader.PropertyToID("_NeuronBuffer");
-        private static readonly int NeuronScaleId = Shader.PropertyToID("_NeuronScale");
+        private static readonly int NeuronScaleId  = Shader.PropertyToID("_NeuronScale");
 
-        [SerializeField] private float neuronScale = 0.08f;
-        private GraphicsBuffer _instanceBuffer;
-        private NeuronInstance[] _instanceData;
-        private Material _material;
-        private Mesh _mesh;
+        [SerializeField] private float            neuronScale = 0.08f;
+        private                  GraphicsBuffer   _instanceBuffer;
+        private                  NeuronInstance[] _instanceData;
+        private                  Material         _material;
+        private                  Mesh             _mesh;
 
         private Sandbox _sandbox;
 
@@ -53,7 +53,7 @@ namespace Cascade
         private void LateUpdate()
         {
             var neurons = _sandbox.Network.Neurons;
-            var count = neurons.Count;
+            var count   = neurons.Count;
 
             // lazily allocate since OnDisable clears buffer
             if (_instanceBuffer is null)
@@ -71,7 +71,7 @@ namespace Cascade
             for (var i = 0; i < count; i++)
             {
                 _instanceData[i].Position = new Vector3(neurons.X[i], neurons.Y[i], neurons.Z[i]);
-                _instanceData[i].Spike = neurons.Spike[i] ? 1f : 0f;
+                _instanceData[i].Spike    = neurons.Spike[i] ? 1f : 0f;
             }
 
             _instanceBuffer.SetData(_instanceData);
@@ -101,7 +101,7 @@ namespace Cascade
         private struct NeuronInstance
         {
             public Vector3 Position;
-            public float Spike; // shader buffers do not support bool
+            public float   Spike; // shader buffers do not support bool
         }
     }
 }

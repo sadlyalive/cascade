@@ -1,6 +1,6 @@
 using System;
 
-namespace Cascade.UI.MenuNode
+namespace Cascade.UI.Menu.MenuNode
 {
     /// <summary>
     ///     Represents a dropdown node that guaranteeably defines behavior and does not own a submenu.
@@ -9,7 +9,7 @@ namespace Cascade.UI.MenuNode
     {
         public MenuLeaf(string label, Action onClick)
         {
-            Label = label;
+            Label   = label;
             OnClick = onClick;
         }
 

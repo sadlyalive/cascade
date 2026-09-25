@@ -44,26 +44,28 @@ namespace Cascade
         {
             var rng = MakeRandom(seed);
 
-            var count = Network.Count;
+            var count         = Network.Count;
             var connectChance = meanDegree / (count - 1);
 
             for (var post = 0; post < count; post++)
-            for (var pre = 0; pre < count; pre++)
             {
-                if (pre == post)
-                    continue;
+                for (var pre = 0; pre < count; pre++)
+                {
+                    if (pre == post)
+                        continue;
 
-                if (rng.NextFloat() < connectChance)
-                    Network.Connect(pre, post, rng.NextFloat(minWeight, maxWeight));
+                    if (rng.NextFloat() < connectChance)
+                        Network.Connectome[pre, post] = rng.NextFloat(minWeight, maxWeight);
+                }
             }
         }
 
         // TODO: Hammersley sequence for less clumping (?)
         /// <summary>
-        ///     Scatters every soma to random positions uniformly distributed within (not just on the surface of) a sphere of
-        ///     radius <paramref name="r" /> and origin <c>(0, 0, 0)</c>.
+        ///     Scatters every soma to random positions uniformly distributed inside a sphere of radius <paramref name="r" /> at
+        ///     <paramref name="origin" />.
         /// </summary>
-        public void PlaceRandomSphere(float r, uint seed = 0)
+        public void PlaceRandomSphere(float r, float3 origin = default, uint seed = 0)
         {
             const float third = 1f / 3f;
 
@@ -72,26 +74,31 @@ namespace Cascade
             foreach (var n in Network.Neurons)
             {
                 // cube-rooting the random scalar compensates for r^3 volume growth
-                var p = math.pow(rng.NextFloat(), third) * r * rng.NextFloat3Direction();
+                var p = origin + math.pow(rng.NextFloat(), third) * r * rng.NextFloat3Direction();
                 n.MoveTo(p.x, p.y, p.z);
             }
         }
 
         /// <summary>
-        ///     Scatters every soma to random positions within an axis-aligned box of size
-        ///     (<paramref name="sizeX" />, <paramref name="sizeY" />, <paramref name="sizeZ" />) and origin
-        ///     <c>(0, 0, 0)</c>.
+        ///     Scatters every soma to random positions within an axis-aligned box of size <paramref name="size" /> and origin
+        ///     <c>size / 2</c>.
         /// </summary>
-        public void PlaceRandomBox(float sizeX, float sizeY, float sizeZ, uint seed = 0)
+        public void PlaceRandomBox(float3 size, float3 origin = default, uint seed = 0)
         {
             var rng = MakeRandom(seed);
 
-            var halfX = sizeX / 2;
-            var halfY = sizeY / 2;
-            var halfZ = sizeZ / 2;
+            var halfX = size.x / 2f;
+            var halfY = size.y / 2f;
+            var halfZ = size.z / 2f;
 
             foreach (var n in Network.Neurons)
-                n.MoveTo(rng.NextFloat(-halfX, halfX), rng.NextFloat(-halfY, halfY), rng.NextFloat(-halfZ, halfZ));
+            {
+                n.MoveTo(
+                    origin.x + rng.NextFloat(-halfX, halfX),
+                    origin.y + rng.NextFloat(-halfY, halfY),
+                    origin.z + rng.NextFloat(-halfZ, halfZ)
+                );
+            }
         }
 
         /// <summary>
@@ -99,7 +106,7 @@ namespace Cascade
         /// </summary>
         public void InjectRandom(float current, int count, uint seed = 0)
         {
-            var rng = MakeRandom(seed);
+            var rng   = MakeRandom(seed);
             var total = Network.Count;
 
             count = Mathf.Clamp(count, 0, total);

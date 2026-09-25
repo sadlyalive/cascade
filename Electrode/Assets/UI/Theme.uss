@@ -1,31 +1,70 @@
 :root {
     --row-pad: 8px;
     --dark: rgb(42, 42, 48);
-    --neutral: rgb(96, 96, 128);
+    --bg: rgb(64, 64, 88);
+    --bg-bright: rgb(80, 80, 104);
+    --bg-highlight: rgb(96, 96, 128);
     --bright: rgb(224, 224, 256);
-
     color: var(--bright);
     -unity-font-definition: url("project://database/Assets/UI/Fonts/Montserrat-Regular.ttf?fileID=12800000&guid=a9f4557353ba3924ba526318b5082f53&type=3#Montserrat-Regular");
 }
 
-/* override unity default spacing for finer control */
 .unity-label {
     padding: 0;
     margin: 0;
+}
+
+.unity-base-field {
+    padding: 0;
+    margin: 4px 0;
+    justify-content: space-between;
+}
+
+.unity-base-field__label {
+    min-width: auto;
+    width: auto;
+}
+
+.unity-base-field__label {
+    margin-right: var(--row-pad);
+    flex-shrink: 0;
+    -unity-text-align: middle-left;
+}
+
+.unity-base-text-field__input {
+    padding: 4px;
+    flex-grow: 0;
+    background-color: var(--dark);
+}
+
+.unity-toggle__input,
+.unity-toggle__checkmark {
+    border-radius: 4px;
+}
+
+.unity-base-field:focus .unity-label {
+    color: var(--bright);
+}
+
+.unity-base-slider__tracker {
+    background-color: var(--dark);
+    border-radius: 3px;
 }
 
 .row-spacer {
     margin: 0 var(--row-pad) 0 0;
 }
 
+.hidden {
+    display: none;
+}
+
 .topbar {
     width: 100%;
     height: 32px;
     padding: 0 0 0 var(--row-pad);
-
     flex-direction: row;
     align-items: flex-start;
     justify-content: flex-start;
-
-    background-color: rgb(64, 64, 96);
+    background-color: var(--bg);
 }

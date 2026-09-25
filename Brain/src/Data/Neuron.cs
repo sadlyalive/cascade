@@ -1,4 +1,6 @@
-﻿namespace Brain;
+﻿using Brain.Data.Collection;
+
+namespace Brain.Data;
 
 /// <summary>
 ///     <para>Object-oriented wrapper for a single neuron inside <see cref="NeuronPool" />.</para>
@@ -15,13 +17,13 @@
 /// </summary>
 public readonly struct Neuron(NeuronPool pool, int i)
 {
-    public ref float Potential => ref pool.Potential[i];
-    public ref float Threshold => ref pool.Threshold[i];
-    public ref float RestPotential => ref pool.RestPotential[i];
+    public ref float Potential      => ref pool.Potential[i];
+    public ref float Threshold      => ref pool.Threshold[i];
+    public ref float RestPotential  => ref pool.RestPotential[i];
     public ref float ResetPotential => ref pool.ResetPotential[i];
-    public ref float LeakRate => ref pool.LeakRate[i];
-    public ref float InputCurrent => ref pool.InputCurrent[i];
-    public ref bool Spike => ref pool.Spike[i];
+    public ref float LeakRate       => ref pool.LeakRate[i];
+    public ref float InputCurrent   => ref pool.InputCurrent[i];
+    public ref bool  Spike          => ref pool.Spike[i];
 
     public ref float X => ref pool.X[i];
     public ref float Y => ref pool.Y[i];

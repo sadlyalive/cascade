@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Brain;
+namespace Brain.Data.Collection;
 
 /// <summary>
 ///     <para>
@@ -13,7 +13,7 @@ namespace Brain;
 ///     process 8+ at once with SIMD instructions.
 ///     With an array of structs those same values would be scattered 20-40 bytes apart.
 /// </summary>
-public sealed class NeuronPool(int count) : IEnumerable<Neuron>
+public sealed partial class NeuronPool(int count) : IEnumerable<Neuron>
 {
     private const string BoxingAllocationError = "IEnumerable cast forces boxing allocation.";
 
@@ -70,38 +70,8 @@ public sealed class NeuronPool(int count) : IEnumerable<Neuron>
         return GetEnumerator();
     }
 
-    public NeuronEnumerator GetEnumerator()
+    public Enumerator GetEnumerator()
     {
-        return new NeuronEnumerator(this);
-    }
-
-    public struct NeuronEnumerator : IEnumerator<Neuron>
-    {
-        private readonly NeuronPool _pool;
-        private int _i;
-
-        public NeuronEnumerator(NeuronPool pool)
-        {
-            _pool = pool;
-            Reset();
-        }
-
-        public readonly Neuron Current => _pool[_i];
-
-        readonly object IEnumerator.Current => Current;
-
-        public bool MoveNext()
-        {
-            return ++_i < _pool.Count;
-        }
-
-        public void Reset()
-        {
-            _i = -1;
-        }
-
-        public readonly void Dispose()
-        {
-        }
+        return new Enumerator(this);
     }
 }

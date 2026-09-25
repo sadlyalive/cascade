@@ -2,11 +2,20 @@
     <Style src="project://database/Assets/UI/Theme.uss?fileID=7433441132597879392&amp;guid=c255edead57285a4989b71fe31672ee0&amp;type=3#Theme"/>
     <Style src="project://database/Assets/UI/TimeMenu.uss?fileID=7433441132597879392&amp;guid=a32c9df64167e1e4299448a722db5f37&amp;type=3#TimeMenu"/>
     <Style src="project://database/Assets/UI/Dropdown.uss?fileID=7433441132597879392&amp;guid=1b2ff852748f18343a7dc9a39c28aff4&amp;type=3#Dropdown"/>
+    <Style src="project://database/Assets/UI/Form.uss?fileID=7433441132597879392&amp;guid=3f08afcc5b0d48ddac5f215775231ec6&amp;type=3#Form"/>
     <ui:VisualElement name="topbar" class="topbar">
         <ui:VisualElement name="time-menu" class="time-menu row-spacer">
             <ui:FloatField name="time-scale-field" label="dt" value="1" max-length="16" class="row-spacer"/>
             <ui:Slider value="1" high-value="10" name="slider" class="slider"/>
         </ui:VisualElement>
-        <ui:VisualElement name="menus" class="menu-container"/>
+        <ui:VisualElement name="menus" class="menu-container row-spacer"/>
+        <ui:Toggle label="Draw Gizmos" name="hint-toggle" value="false"/>
+    </ui:VisualElement>
+    <ui:VisualElement name="form" class="form-container">
+        <ui:Label name="title" class="form-title"/>
+        <ui:ScrollView name="fields"/>
+        <ui:VisualElement name="actions" class="form-actions form-field">
+            <ui:Button name="apply" text="Apply"/>
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

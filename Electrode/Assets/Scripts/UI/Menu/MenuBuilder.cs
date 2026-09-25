@@ -1,11 +1,11 @@
 using System;
-using Cascade.UI.MenuNode;
+using Cascade.UI.Menu.MenuNode;
 using UnityEngine.UIElements;
 
-namespace Cascade.UI
+namespace Cascade.UI.Menu
 {
     /// <summary>
-    ///     Turns a <see cref="MenuNode" /> tree into a hover menu. Structure and behavior live here; appearance lives in
+    ///     Turns a <see cref="IMenuNode" /> tree into a hover menu. Structure and behavior live here; appearance lives in
     ///     Dropdown.uss (opening/closing is pure :hover).
     /// </summary>
     public static class MenuBuilder
@@ -53,7 +53,7 @@ namespace Cascade.UI
         {
             var popup = rootUI.Q(className: "menu-popup");
 
-            // TODO: null-conditional assignment (`popup?.style ...`) when coreclr releases (c# 14)
+            // TODO: null-conditional assignment (`popup?.style ...`) when coreclr releases (c# 10)
             if (popup != null)
                 // null StyleKeyword delegates display to `:hover` rule
                 popup.style.display = hidden ? DisplayStyle.None : StyleKeyword.Null;

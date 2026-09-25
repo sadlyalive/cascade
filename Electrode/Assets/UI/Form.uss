@@ -1,0 +1,105 @@
+.form-container {
+    max-width: 25%;
+    max-height: 20%;
+    margin: var(--row-pad);
+
+    flex-grow: 0;
+    align-self: flex-start;
+
+    background-color: var(--bg);
+}
+
+.form-title,
+.form-actions {
+    min-height: 32px;
+    max-height: 32px;
+    padding: var(--row-pad);
+
+    flex-direction: row;
+
+    background-color: var(--bg-bright);
+}
+
+.form-title {
+    -unity-font-style: bold;
+}
+
+.form-actions {
+    align-items: center;
+    justify-content: center;
+}
+
+.form-actions .unity-button {
+    background-color: var(--dark);
+    border-radius: 8px;
+}
+
+.form-container .unity-scroll-view {
+    margin: 0 var(--row-pad);
+}
+
+.form-container .unity-scroll-view__content-container {
+    padding: var(--row-pad);
+}
+
+.form-container .unity-composite-field__label {
+    padding: 9px 0; /* align main label with first axis label in composite (e.g., vector) fields */
+}
+
+.form-container .unity-base-field__label {
+    margin-right: 32px;
+}
+
+.form-container .unity-base-text-field__input {
+    min-width: 96px;
+    max-width: 96px;
+}
+
+/* sleek thin scroll bar */
+.form-container .unity-scroller {
+    min-width: var(--row-pad);
+    width: var(--row-pad);
+}
+
+.form-container .unity-base-slider__tracker {
+    border-width: 1px;
+    border-radius: 4px;
+}
+
+.form-container .unity-scroller .unity-slider {
+    /* force slider to assume size of the scroll bar with slight vertical margins to appear slightly shorter */
+    min-width: 0;
+    width: 100%;
+    margin: 4px 0;
+
+    /* vertical sliders position their dragger over the drag container's full height and do NOT account for insets on the
+     * dragger itself (horizontal subtracts margins; vertical doesn't), so `top: 1px` makes the dragger bleed from the bottom
+     * by 1px. so the outline and 1px inset live on the slider's root (outside the drag container) and the dragger simply
+     * fills the container
+     */
+    padding: 1px;
+    border-width: 1px;
+    border-radius: 4px;
+    border-color: var(--bg-highlight);
+    background-color: var(--dark);
+}
+
+.form-container .unity-scroller .unity-base-slider__tracker {
+    border-width: 0;
+    border-radius: 3px;
+}
+
+.form-container .unity-scroller .unity-base-slider__dragger {
+    width: auto;
+    top: 0;
+    left: 0;
+    right: 0;
+
+    border-width: 0;
+    border-radius: 3px;
+}
+
+/* hide up and down arrows (don't need them and they look clunky) */
+.form-container .unity-scroller .unity-repeat-button {
+    display: None;
+}

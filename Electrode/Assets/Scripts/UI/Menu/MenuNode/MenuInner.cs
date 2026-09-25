@@ -1,4 +1,4 @@
-namespace Cascade.UI.MenuNode
+namespace Cascade.UI.Menu.MenuNode
 {
     /// <summary>
     ///     Represents an intermediate dropdown node that guarantees a submenu.
@@ -7,7 +7,7 @@ namespace Cascade.UI.MenuNode
     {
         public MenuInner(string label, params IMenuNode[] children)
         {
-            Label = label;
+            Label    = label;
             Children = children;
         }
 

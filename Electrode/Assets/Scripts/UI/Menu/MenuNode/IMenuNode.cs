@@ -1,4 +1,4 @@
-namespace Cascade.UI.MenuNode
+namespace Cascade.UI.Menu.MenuNode
 {
     public interface IMenuNode
     {

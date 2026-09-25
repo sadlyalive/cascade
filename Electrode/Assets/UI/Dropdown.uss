@@ -8,7 +8,9 @@
 }
 
 .menu-root {
+    width: 64px;
     height: 100%;
+    background-color: var(--dark);
 }
 
 .menu-node {
@@ -27,7 +29,7 @@
 }
 
 .menu-node:hover {
-    background-color: var(--neutral);
+    background-color: var(--bg-highlight);
 }
 
 .menu-popup {
@@ -57,4 +59,15 @@
     bottom: 0;
     right: var(--row-pad);
     -unity-text-align: middle-right;
+}
+
+/* locked while the UI is busy (e.g. a form is open): no popups and no hover highlight. popups are pure `:hover` USS, so
+ * this turns them off explicitly instead of relying on the disabled state. the extra specificity is to beat the hover
+ * rules above */
+.menu-container.locked .menu-node:hover > .menu-popup {
+    display: none;
+}
+
+.menu-container.locked .menu-node:hover {
+    background-color: var(--dark);
 }
