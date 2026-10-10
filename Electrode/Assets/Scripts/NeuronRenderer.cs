@@ -18,11 +18,12 @@ namespace Cascade
         private static readonly int NeuronBufferId = Shader.PropertyToID("_NeuronBuffer");
         private static readonly int NeuronScaleId  = Shader.PropertyToID("_NeuronScale");
 
-        [SerializeField] private float            neuronScale = 0.08f;
-        private                  GraphicsBuffer   _instanceBuffer;
-        private                  NeuronInstance[] _instanceData;
-        private                  Material         _material;
-        private                  Mesh             _mesh;
+        [SerializeField] private float neuronScale = 0.08f;
+
+        private GraphicsBuffer   _instanceBuffer;
+        private NeuronInstance[] _instanceData;
+        private Material         _material;
+        private Mesh             _mesh;
 
         private Sandbox _sandbox;
 
@@ -55,26 +56,38 @@ namespace Cascade
             var neurons = _sandbox.Network.Neurons;
             var count   = neurons.Count;
 
-            // lazily allocate since OnDisable clears buffer
-            if (_instanceBuffer is null)
+            if (count == 0)
+                return;
+
+            // reallocate lazily
+            // null check for first use or after OnDisable() clears the buffer
+            // OR when the current buffer can't accomodate the current number of existing neurons
+            if (_instanceBuffer is null || _instanceBuffer.count < count)
             {
-                _instanceData = new NeuronInstance[count];
+                _instanceBuffer?.Dispose();
+
+                _instanceData = new NeuronInstance[neurons.Capacity];
                 _instanceBuffer = new GraphicsBuffer(
                     GraphicsBuffer.Target.Structured,
-                    count,
+                    neurons.Capacity,
                     Marshal.SizeOf<NeuronInstance>()
                 );
             }
 
-            // populate CPU-side array from the SoA arrays and ship it to the shader
+            var x     = neurons.X;
+            var y     = neurons.Y;
+            var z     = neurons.Z;
+            var spike = neurons.Spike;
+
+            // populate CPU-side array from the SoA spans and ship only the live part to the shader
             // TODO: turn _instanceData into SoA (?)
             for (var i = 0; i < count; i++)
             {
-                _instanceData[i].Position = new Vector3(neurons.X[i], neurons.Y[i], neurons.Z[i]);
-                _instanceData[i].Spike    = neurons.Spike[i] ? 1f : 0f;
+                _instanceData[i].Position = new Vector3(x[i], y[i], z[i]);
+                _instanceData[i].Spike    = spike[i] ? 1f : 0f;
             }
 
-            _instanceBuffer.SetData(_instanceData);
+            _instanceBuffer.SetData(_instanceData, 0, 0, count);
 
             var materialProperties = new MaterialPropertyBlock();
 

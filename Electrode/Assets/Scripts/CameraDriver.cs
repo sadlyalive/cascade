@@ -83,8 +83,7 @@ namespace Cascade
             var mouse = Mouse.current;
             var kb    = Keyboard.current;
 
-            if (mouse is null ||
-                kb is null)
+            if (mouse is null || kb is null)
                 return; // not all necessary peripherals connected
 
             var delta  = mouse.delta.ReadValue();
@@ -95,8 +94,7 @@ namespace Cascade
             if (mouse.middleButton.wasPressedThisFrame)
                 _dragStartedOverUI = overUI;
 
-            if (mouse.middleButton.isPressed &&
-                !_dragStartedOverUI)
+            if (mouse.middleButton.isPressed && !_dragStartedOverUI)
             {
                 if (kb.leftShiftKey.isPressed)
                 {

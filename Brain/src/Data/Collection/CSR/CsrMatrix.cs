@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Brain.Data.Collection.CSR;
 
-public partial class CsrArray<T>
+public partial class CsrMatrix<T>
 {
     private const int MaxChanges      = 128;
     private const int QuicksortCutoff = 16;
@@ -19,7 +19,7 @@ public partial class CsrArray<T>
     /// <summary>
     ///     Creates an empty compressed sparse row matrix with preallocated <paramref name="rows" />.
     /// </summary>
-    public CsrArray(int rows)
+    public CsrMatrix(int rows)
     {
         _rowPtr  = new int[rows + 1]; // all zero by default, so every row lacks columns at initialization
         _columns = [];
@@ -44,7 +44,7 @@ public partial class CsrArray<T>
                 return _pending[i].Value;
         }
 
-        if (row > _rowPtr.Length - 2) // last _rowPtr is just an upper bound for the final member's column
+        if (row > Rows - 1) // last _rowPtr is just an upper bound for the final member's column
             return default;
 
         var j = FindInRow(row, col);
@@ -52,64 +52,46 @@ public partial class CsrArray<T>
         return j < 0 ? default : _values[j];
     }
 
-    public RowRange GetRow(int row)
+    public RowSpan<T> GetRow(int row)
     {
+        // treat nonexistent rows as empty rather than tossing an out of range exception (same as Get())
+        if (row >= Rows)
+            return default;
+
         var start = _rowPtr[row];
         var len   = _rowPtr[row + 1] - start;
 
-        return new RowRange(_columns.AsSpan(start, len), _values.AsSpan(start, len));
+        return new RowSpan<T>(_columns.AsSpan(start, len), _values.AsSpan(start, len));
     }
 
     public void Set(int row, int col, T value)
     {
-        var maxRow    = _rowPtr.Length - 1;
-        var rowExists = row < maxRow;
-
         if (IsRemoveOp(value))
         {
-            if (!rowExists)
+            if (row >= Rows)
+                return;
+
+            // fall into modification buffer
+        }
+        else if (row < Rows)
+        {
+            var i = FindInRow(row, col);
+
+            // do NOT perform a quick update if there are pending writes that concern this coordinate, otherwise the
+            // pending writes will overwrite on commit despite being older
+            if (i >= 0 && !IsPending(row, col))
             {
-                throw new ArgumentOutOfRangeException(
-                    nameof(row),
-                    row,
-                    $"Attempt to remove from nonexistent row {row} (max {maxRow})"
-                );
+                _values[i] = value;
+                return;
             }
+
+            // fall into modification buffer
         }
         else
         {
-            if (rowExists)
-            {
-                // edit column's value directly if entry is present AND this isn't a remove op
-                var i = FindInRow(row, col);
+            EnsureRows(row + 1);
 
-                if (i >= 0)
-                {
-                    _values[i] = value;
-                    return;
-                }
-
-                // fall into modification buffer
-            }
-            else
-            {
-                // expand _rowPtr
-                var oldLength = _rowPtr.Length;
-                var newLength = maxRow + (maxRow >> 1);
-
-                // multiplicative expansion must land strictly past `row` because _rowPtr[row + 1] has to exist
-                if (newLength <= row)
-                    newLength = row + 1;
-
-                Array.Resize(ref _rowPtr, newLength + 1);
-
-                // initialize new tail pointers to point to the previous column end. empty rows carry over the offset
-                // index value of the last valid row
-                var lastColIndex = _rowPtr[oldLength - 1];
-
-                for (var i = oldLength; i < _rowPtr.Length; i++)
-                    _rowPtr[i] = lastColIndex;
-            }
+            // fall into modification buffer
         }
 
         if (_changes >= MaxChanges) // commit changes if buffer is full before the new modification
@@ -122,21 +104,40 @@ public partial class CsrArray<T>
         _changes++;
     }
 
+    // grows to at least `rows` rows (1.5x at a time), each new row empty. Set() needs this to accomodate new rows
+    private void EnsureRows(int rows)
+    {
+        if (rows <= Rows)
+            return;
+
+        var oldLength = _rowPtr.Length;
+
+        Array.Resize(ref _rowPtr, Math.Max(rows, Rows + (Rows >> 1)) + 1);
+
+        // new rows are empty, so they all start (and end) where the last existing row ended
+        var end = _rowPtr[oldLength - 1];
+
+        for (var i = oldLength; i < _rowPtr.Length; i++)
+            _rowPtr[i] = end;
+    }
+
     public void CommitChanges()
     {
+        // skip quicksort call and O(rows + nnz) rebuild so callers can commit defensively
+        if (_changes == 0)
+            return;
+
         Quicksort(0, _changes - 1);
 
-        var maxRowIndex = _rowPtr.Length - 1;
-
         // TODO: rent temporary arrays to reduce gc overhead (?)
-        var counts = new int[maxRowIndex];
+        var counts = new int[Rows];
 
         // simultaneous merging and discovering exact nnz after changes
         var id       = 0;
         var batchId  = 0;
         var finalNnz = 0;
 
-        for (var i = 0; i < maxRowIndex; i++)
+        for (var i = 0; i < Rows; i++)
         {
             var rowEnd = _rowPtr[i + 1];
 
@@ -189,7 +190,7 @@ public partial class CsrArray<T>
             }
         }
 
-        // TODO: rent arrays (?)
+        // TODO: rent arrays (see above) (?)
         var finalCols = new int[finalNnz];
         var finalVals = new T[finalNnz];
 
@@ -198,7 +199,7 @@ public partial class CsrArray<T>
         batchId = 0;
         var writeId = 0;
 
-        for (var r = 0; r < maxRowIndex; r++)
+        for (var r = 0; r < Rows; r++)
         {
             var rowEnd = _rowPtr[r + 1];
 
@@ -251,16 +252,14 @@ public partial class CsrArray<T>
         // rebuild row intervals ground-up with counts
         var curSum = 0;
 
-        for (var i = 0; i < maxRowIndex; i++)
+        for (var i = 0; i < Rows; i++)
         {
             _rowPtr[i] =  curSum;
             curSum     += counts[i];
         }
 
-        _rowPtr[maxRowIndex] = curSum;
-
-        // clean up
-        _changes = 0;
+        _rowPtr[Rows] = curSum;
+        _changes      = 0;
     }
 
     // returns the absolute index at which a column exists, otherwise -1
@@ -273,6 +272,17 @@ public partial class CsrArray<T>
         }
 
         return -1;
+    }
+
+    private bool IsPending(int row, int col)
+    {
+        for (var i = 0; i < _changes; i++)
+        {
+            if (_pending[i].Row == row && _pending[i].Column == col)
+                return true;
+        }
+
+        return false;
     }
 
     private static bool IsRemoveOp(T value)

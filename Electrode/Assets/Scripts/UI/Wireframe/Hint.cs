@@ -28,6 +28,8 @@ namespace Cascade.UI.Wireframe
         private Vector3   _size;
         private Matrix4x4 _shapeMatrix;
 
+        public bool Visible { get; set; }
+
         public Mesh Shape
         {
             get => _shape;
@@ -77,6 +79,9 @@ namespace Cascade.UI.Wireframe
 
         private void LateUpdate()
         {
+            if (!Visible)
+                return;
+
             // always draw axes
             Graphics.RenderMesh(_renderParams, WireMesh.Axes, 0, _axisMatrix);
 
@@ -93,11 +98,6 @@ namespace Cascade.UI.Wireframe
         {
             if (Shape)
                 _shapeMatrix = Matrix4x4.TRS(Origin, Quaternion.identity, Size);
-        }
-
-        public void Clear()
-        {
-            Shape = null;
         }
     }
 }

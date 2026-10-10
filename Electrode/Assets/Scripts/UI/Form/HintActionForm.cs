@@ -43,7 +43,7 @@ namespace Cascade.UI.Form
 
         public override void OnHide()
         {
-            _hint.Clear();
+            _hint.Shape = null;
         }
     }
 }

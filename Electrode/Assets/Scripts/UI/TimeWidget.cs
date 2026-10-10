@@ -54,7 +54,7 @@ namespace Cascade.UI
             void ApplyRound(float raw)
             {
                 const decimal step = .1m;
-                Apply((float)(Math.Round((decimal)raw / step) * step));
+                Apply((float)(Math.Round((decimal)raw / step) * step)); // eliminate float imprecision
             }
         }
     }

@@ -21,13 +21,13 @@ namespace Cascade.UI
         private int _busyCount;
 
         /// <summary>
-        ///     The current UI tree's root, or null before the first load. Subscribers that enable after the first
-        ///     <see cref="Reloaded" /> should build from this immediately, since they missed that event.
+        ///     The current UI tree's root, or null before the first load. Must expose for plugins that dynamically reattach to the
+        ///     UI on reenable since they will miss `Reloaded` events while inactive.
         /// </summary>
         public VisualElement Root { get; private set; }
 
         /// <summary>
-        ///     Raises after every UI (re)build, once <see cref="Root" /> is fresh, with the new root.
+        ///     Raises after every UI rebuild after <see cref="Root" /> refreshes.
         /// </summary>
         public event Action<VisualElement> Reloaded;
 
@@ -74,12 +74,11 @@ namespace Cascade.UI
 
         /// <summary>
         ///     <para>
-        ///         Marks the UI busy until the returned token is disposed, e.g. <c>using var busy = ui.Busy();</c> or held in a
-        ///         field for a form's lifetime. Menus and the like lock while <see cref="IsBusy" />.
+        ///         Locks menus if at least one busy disposable is alive.
         ///     </para>
         ///     <para>
-        ///         Tokens count, so overlapping holders are fine, and disposing one twice is harmless. The point over a
-        ///         shared list is that a holder can only release what it was granted.
+        ///         Better than a shared list since the token guarantees consumers can only dispose their own busy state. Redundant
+        ///         disposes are also harmless.
         ///     </para>
         /// </summary>
         public IDisposable Busy()
@@ -103,8 +102,7 @@ namespace Cascade.UI
             var mouse = Mouse.current;
             var panel = Root?.panel;
 
-            if (mouse is null ||
-                panel is null)
+            if (mouse is null || panel is null)
                 return null;
 
             // ScreenToPanel wants a top-left origin but InputSystem reports bottom-left
@@ -138,13 +136,17 @@ namespace Cascade.UI
                 _owner = owner;
             }
 
+            // second Dispose finds _owner already null and no-ops
             public void Dispose()
             {
-                var owner = _owner;
+                if (_owner is null)
+                    return;
 
-                // cleared first so disposing twice can't release twice (which would steal someone else's hold)
+                // _owner must clear BEFORE Release() because Release() raises BusyChanged, which could run code
+                // that redundantly calls Dispose(). if that happens, _owner must be null by then to no-op
+                var owner = _owner;
                 _owner = null;
-                owner?.Release();
+                owner.Release();
             }
         }
     }

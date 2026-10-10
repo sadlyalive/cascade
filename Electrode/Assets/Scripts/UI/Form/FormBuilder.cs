@@ -22,7 +22,7 @@ namespace Cascade.UI.Form
 
         public ActionForm PlaceSphere()
         {
-            var form   = Hinted("Place randomly in sphere", WireMesh.Sphere);
+            var form   = WithHint("Place randomly in sphere", WireMesh.Sphere);
             var origin = form.Add(new Vector3FormField("Origin", Vector3.zero));
             var radius = form.Add(new FloatFormField("Radius", 8f));
             var seed   = form.Add(new UIntFormField("Seed"));
@@ -39,9 +39,9 @@ namespace Cascade.UI.Form
 
         public ActionForm PlaceBox()
         {
-            var form   = Hinted("Place randomly in box", WireMesh.Cube);
+            var form   = WithHint("Place randomly in box", WireMesh.Cube);
             var origin = form.Add(new Vector3FormField("Origin", Vector3.zero));
-            var size   = form.Add(new Vector3FormField("Size",   Vector3.one * 4f));
+            var size   = form.Add(new Vector3FormField("Size",   Vector3.one * 8f));
             var seed   = form.Add(new UIntFormField("Seed"));
 
             form.OnApply = () => _sandbox.PlaceRandomBox(size.Value, origin.Value, seed.Value);
@@ -80,7 +80,7 @@ namespace Cascade.UI.Form
         }
 
         // a form that previews on the hint renderer; injects it so each form only names its shape
-        private HintActionForm Hinted(string title, Mesh shape)
+        private HintActionForm WithHint(string title, Mesh shape)
         {
             return new HintActionForm(title, _hint, shape);
         }

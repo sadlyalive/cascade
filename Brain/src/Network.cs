@@ -1,6 +1,5 @@
 ﻿using System;
 using Brain.Data.Collection;
-using Brain.Data.Collection.CSR;
 
 namespace Brain;
 
@@ -8,26 +7,35 @@ public sealed class Network
 {
     /// <summary>
     ///     <para>Per-step buffer that caches total synaptic current arriving at each postsynaptic neuron.</para>
-    ///     <para>Created only occasionally; would bloat heap and GC if created per step.</para>
     /// </summary>
-    private readonly float[] _current;
+    private float[] _current;
 
+    /// <summary>
+    ///     <para>
+    ///         Indices of spiking neurons from the last step. Only the first <see cref="_spikeCount" /> entries are valid.
+    ///     </para>
+    ///     <para>
+    ///         Propagation walks this instead of checking every neuron's <see cref="NeuronPool.Spike" /> flag, so its cost
+    ///         depends only on the number of spikes rather than a constant <c>O(n)</c>. <see cref="NeuronPool.Spike" /> is still
+    ///         written for outside readers (e.g. rendering), but <c>Step()</c> treats this list as the source of truth.
+    ///     </para>
+    /// </summary>
+    private int[] _spikes;
+
+    private int _spikeCount;
+
+    /// <summary>Creates a network of <paramref name="count" /> unconnected neurons with default parameters.</summary>
     public Network(int count)
     {
-        Neurons = new NeuronPool(count);
-
+        Neurons    = new NeuronPool(count);
         Connectome = new Connectome<float>(count);
-        _current   = new float[count];
 
-        // TODO: make customizable. currently biologically-inspired defaults
-        foreach (var n in Neurons)
-        {
-            n.RestPotential  = -70f; // mV
-            n.Potential      = -70f; // start at rest
-            n.Threshold      = -55f; // ~15 mV of headroom to fire
-            n.ResetPotential = -75f; // slight undershoot after a spike
-            n.LeakRate       = 0.1f; // 1/ms
-        }
+        // both sized to the pool's capacity, not its count, and kept that way by AddNeuron
+        _current = new float[Neurons.Capacity];
+        _spikes  = new int[Neurons.Capacity]; // worst case: every neuron fires on the same step
+
+        for (var i = 0; i < count; i++)
+            AddNeuron();
     }
 
     /// <summary>
@@ -46,50 +54,151 @@ public sealed class Network
 
     public int Count => Neurons.Count;
 
+    public Diagnoser Diagnoser { get; } = new(1024);
+
+    /// <summary>Appends an unconnected neuron with default parameters and returns its index.</summary>
+    public int AddNeuron()
+    {
+        var i = Neurons.Add();
+
+        // adjust metadata arrays if the pool just grew from this addition
+        // ReSharper disable once InvertIf
+        if (_current.Length < Neurons.Capacity)
+        {
+            Array.Resize(ref _current, Neurons.Capacity);
+            Array.Resize(ref _spikes,  Neurons.Capacity);
+        }
+
+        return i;
+    }
+
     /// <summary>
-    ///     <para>Advance the simulation by <paramref name="elapse" />.</para>
+    ///     <para>
+    ///         Deletes the neuron at <paramref name="i" /> and every relevant synapse.
+    ///     </para>
+    ///     <para>
+    ///         Performs a swap-remove such that the last neuron moves into <paramref name="i" /> (state, synapses, etc.).
+    ///     </para>
+    /// </summary>
+    public void RemoveNeuron(int i)
+    {
+        // uint cast catches i < 0 (what .NET runtime does as well)
+        if ((uint)i >= (uint)Count)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(i),
+                i,
+                $"Attempt to remove nonexistent neuron at index {i} (count {Count})"
+            );
+        }
+
+        // ensure connectome is up to date before deletion passthrough
+        Connectome.CommitChanges();
+
+        // sever synapses to and from the removing neuron
+        // iterating a row while writing removals is safe because removals are buffered and, even if the buffer fills
+        // and commits midway, the spans view old arrays
+        foreach (var pre in Connectome.To(i).Columns)
+            Connectome[pre, i] = 0f;
+
+        foreach (var post in Connectome.From(i).Columns)
+            Connectome[i, post] = 0f;
+
+        // commit so reoccupation does not see stale synapses on To/From in the case that the removing neuron and the
+        // swapping neuron were connected
+        Connectome.CommitChanges();
+
+        // adhere to swap-remove by moving all synapses from the old index to the new vacant one
+        var oldIndex = Neurons.RemoveAt(i);
+
+        if (oldIndex >= 0)
+        {
+            foreach (var (pre, weight) in Connectome.To(oldIndex))
+            {
+                Connectome[pre, i]        = weight;
+                Connectome[pre, oldIndex] = 0f;
+            }
+
+            foreach (var (post, weight) in Connectome.From(oldIndex))
+            {
+                Connectome[i, post]        = weight;
+                Connectome[oldIndex, post] = 0f;
+            }
+
+            Connectome.CommitChanges();
+        }
+
+        for (var j = _spikeCount - 1; j >= 0; j--)
+        {
+            if (_spikes[j] == i)
+                _spikes[j] = _spikes[_spikeCount--]; // swap-remove the dead neuron's spike if present
+            else if (_spikes[j] == oldIndex)
+                _spikes[j] = i; // update the moving neuron's index in the spike list
+        }
+    }
+
+    /// <summary>
+    ///     <para>Advance the simulation by <paramref name="time" />.</para>
     ///     <para>Accepts a <see cref="TimeSpan" /> for convenience and uses milliseconds internally.</para>
     /// </summary>
-    public void Step(TimeSpan elapse)
+    public void Step(TimeSpan time)
     {
-        var dt = (float)elapse.TotalMilliseconds;
+        var dt = (float)time.TotalMilliseconds;
 
         // TODO: change to single-arg Array.Clear(arr) on unity 6.8 CoreCLR
         Array.Clear(_current, 0, _current.Length);
 
+        Diagnoser.Start();
+
         // gather synaptic current from last step
-        // walks ONLY outbound rows for spiking neurons in contrast to every  (pre, post) pair for 2D arrays
-        // TODO: n.Spike still holds previous results which means dt bottlenecks propagation speed
-        for (var pre = 0; pre < Count; pre++)
+        // walks ONLY outbound rows of neurons that spiked, in contrast to every (pre, post) pair for 2D arrays
+        // TODO: spike list still holds previous results which means dt bottlenecks propagation speed
+        for (var i = 0; i < _spikeCount; i++)
         {
-            if (!Neurons.Spike[pre])
-                continue;
+            // avoid foreach in tight loop
+            var row = Connectome.From(_spikes[i]);
 
-            // avoid foreach enumerator since it slightly hurts performance
-            var outbound = Connectome.From(pre);
-
-            for (var i = 0; i < outbound.Count; i++)
-                _current[outbound.Columns[i]] += outbound.Values[i];
+            for (var j = 0; j < row.Count; j++)
+                _current[row.Columns[j]] += row.Values[j];
         }
+
+        Diagnoser.Stop();
+
+        // store spans in variables to avoid creating a new one per property access
+        var inputCurrent = Neurons.InputCurrent;
+
+        var potential      = Neurons.Potential;
+        var restPotential  = Neurons.RestPotential;
+        var resetPotential = Neurons.ResetPotential;
+        var leakRate       = Neurons.LeakRate;
+
+        var spike     = Neurons.Spike;
+        var threshold = Neurons.Threshold;
+
+        // discard spikes in last step and begin recording new spikes
+        _spikeCount = 0;
 
         // integrate, leak, and check voltage threshold
         for (var i = 0; i < Count; i++)
         {
             // asymptotically leak towards rest
-            var leak = Neurons.LeakRate[i] * (Neurons.RestPotential[i] - Neurons.Potential[i]);
+            var leak = leakRate[i] * (restPotential[i] - potential[i]);
 
             // integrate all current flowing into this neuron this step
-            var current = Neurons.InputCurrent[i] + _current[i];
+            var current = inputCurrent[i] + _current[i];
 
             // forward Euler integration (value += rate * dt)
-            Neurons.Potential[i] += (leak + current) * dt;
+            potential[i] += (leak + current) * dt;
 
             // fire if current potential exceeds threshold
-            var spiked = Neurons.Potential[i] >= Neurons.Threshold[i];
-            Neurons.Spike[i] = spiked;
+            var spiked = potential[i] >= threshold[i];
 
-            if (spiked)
-                Neurons.Potential[i] = Neurons.ResetPotential[i];
+            spike[i] = spiked;
+
+            if (!spiked) continue;
+
+            potential[i]           = resetPotential[i];
+            _spikes[_spikeCount++] = i;
         }
     }
 }

@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 252257375}
   - component: {fileID: 252257374}
   - component: {fileID: 252257373}
+  - component: {fileID: 252257376}
   m_Layer: 0
   m_Name: ui
   m_TagString: Untagged
@@ -263,6 +264,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Cascade::Cascade.UI.Menu.MenuDriver
   sandbox: {fileID: 1365696033}
+  hint: {fileID: 1365696035}
+--- !u!114 &252257376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 252257368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 497a3056937c42758253a211f569a5fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Cascade::Cascade.UI.HintToggleWidget
   hint: {fileID: 1365696035}
 --- !u!1 &330585543
 GameObject:

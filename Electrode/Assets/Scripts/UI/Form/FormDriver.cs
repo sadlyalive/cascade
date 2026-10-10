@@ -6,10 +6,14 @@ using UnityEngine.UIElements;
 namespace Cascade.UI.Form
 {
     /// <summary>
-    ///     Fills the form shell declared in MainUI.uxml (a "title" label, a "fields" scroll view, and "apply"/"close"
-    ///     buttons) from an <see cref="ActionForm" />, and dismisses it on Esc or a click elsewhere. The shell is static
-    ///     UXML; what goes in it is data, so one shell serves every form. Appearance lives in Form.uss. Re-attaches to the
-    ///     shell whenever <see cref="UIDriver" /> reloads the UI.
+    ///     <para>
+    ///         Fills the form shell in MainUI.uxml with an <see cref="ActionForm" />, and dismisses it on <c>esc</c> or an
+    ///         external click.
+    ///     </para>
+    ///     <para>
+    ///         One shell serves every form. Universal appearance lives in Form.uss. Reassigns fields and resubscribes to
+    ///         events whenever <see cref="UIDriver" /> reloads the UI (which includes the form shell).
+    ///     </para>
     /// </summary>
     [RequireComponent(typeof(UIDriver))]
     public sealed class FormDriver : MonoBehaviour
@@ -31,24 +35,28 @@ namespace Cascade.UI.Form
             var kb    = Keyboard.current;
             var mouse = Mouse.current;
 
-            if (kb != null &&
-                kb.escapeKey.wasPressedThisFrame)
+            if (kb != null && kb.escapeKey.wasPressedThisFrame)
             {
                 Hide();
                 return;
             }
 
-            // a left click anywhere outside the form cancels it. left only: middle-drag orbits the camera, which should
-            // stay usable while a form is open
-            if (mouse == null ||
-                !mouse.leftButton.wasPressedThisFrame)
+            // a left click anywhere outside the form cancels it
+            // other inputs (e.g., middle mouse for camera orbit) still work
+            if (mouse == null || !mouse.leftButton.wasPressedThisFrame)
                 return;
 
             var hoverUI = _ui.CursorPick;
 
-            if (hoverUI == null ||
-                !Owns(hoverUI))
+            if (hoverUI == null || !IsInFormUI(hoverUI))
                 Hide();
+
+            return;
+
+            bool IsInFormUI(VisualElement element)
+            {
+                return element == _root || _root.Contains(element);
+            }
         }
 
         private void OnEnable()
@@ -95,7 +103,7 @@ namespace Cascade.UI.Form
 
             form.OnShow();
 
-            // one token spans replacing a form with another so the UI doesn't unlock for a frame in between
+            // old token persists when replacing a form with another so the UI doesn't unlock for a frame in between
             _busy ??= _ui.Busy();
 
             _root.RemoveFromClassList("hidden");
@@ -112,38 +120,41 @@ namespace Cascade.UI.Form
             _root?.AddToClassList("hidden");
         }
 
-        // (re)binds to the shell in a freshly built UI tree
+        // find and reattach relevant form components per UI rebuild
         private void Rebuild(VisualElement root)
         {
-            Detach(); // the old tree's elements are gone, but the form's side effects (e.g. a hint) might not be
+            var form = root.Q("form");
 
-            _root   = root.Q("form");
-            _title  = _root.Q<Label>("title");
-            _fields = _root.Q<ScrollView>("fields");
-
-            // form action buttons simply act on whichever form is currently shown (shared frame)
-            _root.Q<Button>("apply").clicked += () =>
+            // prevent duplicate binding on re-enable (the only time when Rebuild() calls without an actual UI rebuild)
+            if (form != _root)
             {
-                _current?.OnApply();
-                Hide();
-            };
+                _root   = form;
+                _title  = form.Q<Label>("title");
+                _fields = form.Q<ScrollView>("fields");
+
+                // acts on whichever form is currently shown since the ui structure is reused
+                form.Q<Button>("apply").clicked += Apply;
+            }
 
             Hide();
         }
 
-        /// <summary>Whether <paramref name="element" /> is the form itself or something inside it.</summary>
-        private bool Owns(VisualElement element)
+        private void Apply()
         {
-            return element == _root || _root.Contains(element);
+            _current?.OnApply();
+            Hide();
         }
 
+        // clear _current first to make repeat calls no-op (e.g., Apply then Hide)
+        // also covers prevents OnHide from triggering a redundant Hide
         private void Detach()
         {
-            var ending = _current;
+            if (_current is null)
+                return;
 
-            // clear preemptively so a second hide op (e.g., applying then clicking outside) won't run OnHide twice
+            var ending = _current;
             _current = null;
-            ending?.OnHide(); // good practice to run callback after time-sensitive cleanup
+            ending.OnHide();
         }
     }
 }

@@ -23,11 +23,19 @@ namespace Cascade
             Network = new Network(1024);
             PlaceRandomSphere(8);
             WireRandom(3, 1, 10);
+
+            var diagnoser = Network.Diagnoser;
+            var trials    = diagnoser.TrialsPerDiagnosis;
+
+            diagnoser.OnFinish += (_, dt) =>
+            {
+                Debug.Log($"{trials} trials of propagation: {dt} ms, avg {dt * 1000 / trials} µs");
+            };
         }
 
         private void Update()
         {
-            Network?.Step(TimeSpan.FromSeconds(Time.deltaTime * TimeScale));
+            Network?.Step(TimeSpan.FromMilliseconds(1)); //TimeSpan.FromSeconds(Time.deltaTime * TimeScale)
         }
 
         /// <summary>

@@ -1,6 +1,6 @@
 namespace Brain.Data.Collection.CSR;
 
-public partial class CsrArray<T>
+public partial class CsrMatrix<T>
 {
     private void Quicksort(int min, int max)
     {

@@ -9,7 +9,7 @@
             <ui:Slider value="1" high-value="10" name="slider" class="slider"/>
         </ui:VisualElement>
         <ui:VisualElement name="menus" class="menu-container row-spacer"/>
-        <ui:Toggle label="Draw Gizmos" name="hint-toggle" value="false"/>
+        <ui:Toggle label="Draw Gizmos" name="hint-toggle" value="true"/>
     </ui:VisualElement>
     <ui:VisualElement name="form" class="form-container">
         <ui:Label name="title" class="form-title"/>
