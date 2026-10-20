@@ -5,10 +5,15 @@ namespace Brain.Data.Collection.CSR;
 
 public partial class CsrMatrix<T>
 {
-    private const int MaxChanges      = 128;
+    private const int InitialCommitThreshold = 128;
     private const int QuicksortCutoff = 16;
 
-    private readonly PendingWrite[] _pending = new PendingWrite[MaxChanges];
+    // writes not yet merged into the matrix itself since
+    private PendingWrite[] _pending = new PendingWrite[InitialCommitThreshold];
+
+    // where each pending cell sits in _pending, so finding one costs O(1) however many are pending instead of a scan.
+    // also means a cell is never pending twice: a rewrite just overwrites its slot
+    private Dictionary<Cell, int> _pendingSlots = new();
 
     private int[] _rowPtr;
     private int[] _columns;
@@ -26,7 +31,7 @@ public partial class CsrMatrix<T>
         _values  = [];
     }
 
-    public int Rows => _rowPtr.Length - 1;
+    private int Rows => _rowPtr.Length - 1;
 
     public T this[int row, int col]
     {
@@ -36,13 +41,9 @@ public partial class CsrMatrix<T>
 
     public T Get(int row, int col)
     {
-        // check pending writes first
-        // must traverse in reverse so that newer writes take precedence
-        for (var i = _changes - 1; i >= 0; i--)
-        {
-            if (row == _pending[i].Row && col == _pending[i].Column)
-                return _pending[i].Value;
-        }
+        // pending writes are newer than the arrays, so they take precedence
+        if (_pendingSlots.TryGetValue(new Cell(row, col), out var slot))
+            return _pending[slot].Value;
 
         if (row > Rows - 1) // last _rowPtr is just an upper bound for the final member's column
             return default;
@@ -66,45 +67,54 @@ public partial class CsrMatrix<T>
 
     public void Set(int row, int col, T value)
     {
+        var cell = new Cell(row, col);
+
+        // check for an existing pending write and just overwrite it if present
+        if (_pendingSlots.TryGetValue(cell, out var slot))
+        {
+            _pending[slot].Value = value;
+            return;
+        }
+
+        var existing = row < Rows ? FindInRow(row, col) : -1;
+
         if (IsRemoveOp(value))
         {
-            if (row >= Rows)
+            // removing something that doesn't exist (and isn't pending, see above) changes nothing
+            if (existing < 0)
                 return;
 
-            // fall into modification buffer
+            // an existing entry can't be removed in place, the arrays have to shrink: fall into modification buffer
         }
-        else if (row < Rows)
+        else if (existing >= 0)
         {
-            var i = FindInRow(row, col);
-
-            // do NOT perform a quick update if there are pending writes that concern this coordinate, otherwise the
-            // pending writes will overwrite on commit despite being older
-            if (i >= 0 && !IsPending(row, col))
-            {
-                _values[i] = value;
-                return;
-            }
-
-            // fall into modification buffer
+            // quick update. safe because the cell isn't pending, so no older pending write can overwrite this on commit
+            _values[existing] = value;
+            return;
         }
         else
         {
             EnsureRows(row + 1);
 
-            // fall into modification buffer
+            // a new entry has to be inserted: fall into modification buffer
         }
 
-        if (_changes >= MaxChanges) // commit changes if buffer is full before the new modification
+        // commit once the buffer holds as many writes as the matrix has entries. a commit costs O(nnz + k log k), so
+        // letting k grow with nnz keeps the merge cost per write constant: a burst of a million writes (an import, a big
+        // wiring) merges a handful of times instead of once every 128 writes. small edits still commit at InitialCommitThreshold
+        if (_changes >= Math.Max(InitialCommitThreshold, _columns.Length))
             CommitChanges();
 
-        // Order = _changes = current buffer count = position of this change = order to combat unstable sort
-        // _changes resets on commit which is perfect since sorts only care about the current batch
-        _pending[_changes] = new PendingWrite { Row = row, Column = col, Order = _changes, Value = value };
+        if (_changes == _pending.Length)
+            Array.Resize(ref _pending, _changes * 2);
+
+        _pending[_changes]  = new PendingWrite(row, col, value);
+        _pendingSlots[cell] = _changes;
 
         _changes++;
     }
 
-    // grows to at least `rows` rows (1.5x at a time), each new row empty. Set() needs this to accomodate new rows
+    // grow matrix to max(rows, Rows * 1.5)
     private void EnsureRows(int rows)
     {
         if (rows <= Rows)
@@ -113,19 +123,24 @@ public partial class CsrMatrix<T>
         var oldLength = _rowPtr.Length;
 
         Array.Resize(ref _rowPtr, Math.Max(rows, Rows + (Rows >> 1)) + 1);
-
-        // new rows are empty, so they all start (and end) where the last existing row ended
+        
         var end = _rowPtr[oldLength - 1];
 
+        // new rows are always empty, so they all start and end where the last existing row ended
         for (var i = oldLength; i < _rowPtr.Length; i++)
             _rowPtr[i] = end;
     }
-
-    public void CommitChanges()
+    
+    /// <summary>
+    ///     Quicksort then file-in all pending writes into the actual matrix. Invokes automatically once the number of
+    ///     pending writes reaches the matrix's nonzero count (at least 128).
+    /// </summary>
+    /// <returns>True if any writes were committed</returns>
+    public bool CommitChanges()
     {
         // skip quicksort call and O(rows + nnz) rebuild so callers can commit defensively
         if (_changes == 0)
-            return;
+            return false;
 
         Quicksort(0, _changes - 1);
 
@@ -169,16 +184,8 @@ public partial class CsrMatrix<T>
                 }
                 else
                 {
-                    targetCol = _columns[id];
                     targetVal = _values[id];
                     id++;
-                }
-
-                // de-duplicate identical sequential (sorted) entries inside the batch itself (last write wins)
-                while (batchId < _changes && _pending[batchId].Row == i && _pending[batchId].Column == targetCol)
-                {
-                    targetVal = _pending[batchId].Value;
-                    batchId++;
                 }
 
                 // omit removals from nnz
@@ -231,12 +238,6 @@ public partial class CsrMatrix<T>
                     id++;
                 }
 
-                while (batchId < _changes && _pending[batchId].Row == r && _pending[batchId].Column == targetCol)
-                {
-                    targetVal = _pending[batchId].Value;
-                    batchId++;
-                }
-
                 if (IsRemoveOp(targetVal))
                     continue;
 
@@ -259,7 +260,22 @@ public partial class CsrMatrix<T>
         }
 
         _rowPtr[Rows] = curSum;
-        _changes      = 0;
+
+        // a burst (e.g. from an import) can leave the buffer and index enormous. Dictionary.Clear keeps its capacity and
+        // costs O(capacity), so every later small commit would keep paying for that one burst: start small instead
+        if (_pending.Length > InitialCommitThreshold * 8)
+        {
+            _pending      = new PendingWrite[InitialCommitThreshold];
+            _pendingSlots = new Dictionary<Cell, int>();
+        }
+        else
+        {
+            _pendingSlots.Clear();
+        }
+
+        _changes = 0;
+
+        return true;
     }
 
     // returns the absolute index at which a column exists, otherwise -1
@@ -274,17 +290,6 @@ public partial class CsrMatrix<T>
         return -1;
     }
 
-    private bool IsPending(int row, int col)
-    {
-        for (var i = 0; i < _changes; i++)
-        {
-            if (_pending[i].Row == row && _pending[i].Column == col)
-                return true;
-        }
-
-        return false;
-    }
-
     private static bool IsRemoveOp(T value)
     {
         return EqualityComparer<T>.Default.Equals(value, default);
@@ -294,12 +299,11 @@ public partial class CsrMatrix<T>
     // buffer can get very swap-heavy (sorting) so this helps shorten the code (not writing to 4 different arrays per
     // swap) and (i think?) performs better due to bulk memory copy
     // TODO: implement IComparisonOperators on c# 11 (requires CoreCLR)
-    private struct PendingWrite : IComparable<PendingWrite>
+    private struct PendingWrite(int row, int col, T val) : IComparable<PendingWrite>
     {
-        public int Row;
-        public int Column;
-        public int Order; // equal to _changes (buffer count) to map original insertion order
-        public T   Value;
+        public readonly int Row = row;
+        public readonly int Column = col;
+        public T   Value = val;
 
         public static bool operator <(PendingWrite left, PendingWrite right)
         {
@@ -325,12 +329,34 @@ public partial class CsrMatrix<T>
         {
             var delta = Row.CompareTo(other.Row);
 
-            if (delta != 0)
-                return delta;
+            // tiebreaker for unstable sort no longer needed thanks to hash table (always 1:1 cell and value)
+            return delta != 0 ? delta : Column.CompareTo(other.Column);
+        }
+    }
 
-            delta = Column.CompareTo(other.Column);
+    // dictionary key for one matrix cell
+    // two cells may share a hash code but that only marginally increases collisions. dictionary still differenties them
+    // with Equals()
+    private readonly struct Cell(int row, int column) : IEquatable<Cell>
+    {
+        private readonly int _row    = row;
+        private readonly int _column = column;
 
-            return delta != 0 ? delta : Order.CompareTo(other.Order); // tiebreaker for unstable sort
+        public bool Equals(Cell other)
+        {
+            return _row == other._row && _column == other._column;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Cell other && Equals(other);
+        }
+
+        // HashCode.Combine mixes the bits of both. packing (row, col) into a long WOULD be unique, but long's own hash
+        // XORs its halves back into row ^ col, which collides along every diagonal: (0, 3), (1, 2), (2, 1), (3, 0)...
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(_row, _column);
         }
     }
 }

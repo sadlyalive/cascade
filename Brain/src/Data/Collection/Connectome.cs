@@ -12,12 +12,25 @@ public sealed class Connectome<T>
     private readonly CsrMatrix<T> _inbound;
     private readonly CsrMatrix<T> _outbound;
 
-    /// <summary>Creates an empty connectome with room for <paramref name="size" /> neurons.</summary>
+    /// <summary>Creates an empty connectome and preallocates for <paramref name="size" /> neurons.</summary>
     public Connectome(int size)
     {
         _inbound  = new CsrMatrix<T>(size);
         _outbound = new CsrMatrix<T>(size);
     }
+
+    /// <summary>
+    ///     <para>
+    ///         Increments on every write (<see cref="this[int,int]" />) and successful commit (<see cref="CommitChanges" />
+    ///         ).
+    ///     </para>
+    ///     <para>
+    ///         Exists primarily for external listeners to cheaply discern synaptic changes (e.g., rendering new synapses or
+    ///         weight changes). This is more performant than an event since connectome writes are extremely frequent with
+    ///         potentiation.
+    ///     </para>
+    /// </summary>
+    public int Version { get; private set; }
 
     public T this[int pre, int post]
     {
@@ -26,20 +39,26 @@ public sealed class Connectome<T>
         {
             _inbound[post, pre]  = value;
             _outbound[pre, post] = value;
+
+            Version++;
         }
     }
 
     /// <summary>
-    ///     <para>Applies pending synapse creations or removals in both directions.</para>
     ///     <para>
-    ///         <see cref="To" /> and <see cref="From" /> only see committed rows, so call this must execute before fetching
-    ///         up-to-date rows.
+    ///         Bakes pending synapse creations or removals into both internal directional matrices, which allows
+    ///         <see cref="To" />/<see cref="From" /> to perceive them.
     ///     </para>
     /// </summary>
-    public void CommitChanges()
+    /// <returns>True if any change was committed and hence a <see cref="Version" /> bump</returns>
+    public bool CommitChanges()
     {
-        _inbound.CommitChanges();
-        _outbound.CommitChanges();
+        var success = _inbound.CommitChanges() | _outbound.CommitChanges();
+
+        if (success)
+            Version++;
+
+        return success;
     }
 
     public RowSpan<T> To(int post)

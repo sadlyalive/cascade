@@ -15,6 +15,15 @@ public partial class CsrMatrix<T>
 
             var pivotIndex = Partition(min, max);
 
+            // use the loop for the larger partition to guarantee worst case O(log n) stack depth
+            if (pivotIndex - min > max - pivotIndex) // left partition must be larger
+            {
+                Quicksort(pivotIndex + 1, max);
+                max = pivotIndex - 1;
+                
+                continue;
+            }
+            
             Quicksort(min, pivotIndex - 1);
             min = pivotIndex + 1;
         }
