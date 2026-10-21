@@ -1,22 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace Brain.Data.Collection;
 
-/// <summary>
-///     <para>
-///         Storage for every neuron's state, laid out as a structure of arrays. Every array represents a neural property
-///         where each index (0 ... <see cref="Count" /> - 1) is a unique neuron.
-///     </para>
-///     Simulation loop addresses one property across all neurons at a time so the CPU streams them efficiently and can
-///     process 8+ at once with SIMD instructions.
-///     With an array of structs those same values would be scattered 20-40 bytes apart.
-/// </summary>
+/// <summary>Storage for every neuron's state in a structure of arrays.</summary>
 public sealed partial class NeuronPool : IEnumerable<Neuron>
 {
-    private const string BoxingAllocationError = "IEnumerable cast forces boxing allocation.";
-
     private float[] _inputCurrent;
 
     private float[] _potential;
@@ -24,14 +13,14 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
     private float[] _resetPotential;
     private float[] _leakRate;
 
-    private bool[]  _spike;
-    private float[] _threshold;
+    private double[] _lastSpike;
+    private float[]  _threshold;
 
     private float[] _x;
     private float[] _y;
     private float[] _z;
 
-    /// <summary>Creates an empty pool (no neurons) with room for <paramref name="capacity" /> before it has to grow.</summary>
+    /// <summary>Creates an empty pool with preallocation for <paramref name="capacity" /> neurons.</summary>
     internal NeuronPool(int capacity)
     {
         Reallocate(Math.Max(capacity, 1));
@@ -56,8 +45,11 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
     /// <summary>Leakage speed towards rest (1/ms i.e., greater = leakier)</summary>
     public Span<float> LeakRate => _leakRate.AsSpan(0, Count);
 
-    /// <summary>True on the exact step of a spike. Resets next step.</summary>
-    public Span<bool> Spike => _spike.AsSpan(0, Count);
+    /// <summary>
+    ///     <see cref="Network.Time" /> of each neuron's most recent spike (ms), or negative infinity if it never spiked. Uses
+    ///     doubles to mitigate floating-point drift.
+    /// </summary>
+    public Span<double> LastSpike => _lastSpike.AsSpan(0, Count);
 
     /// <summary>Spike thresholds (mV)</summary>
     public Span<float> Threshold => _threshold.AsSpan(0, Count);
@@ -81,18 +73,6 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
     /// <summary>Create a transient struct of the neuron at <paramref name="i" /> for object-oriented wrapping.</summary>
     public Neuron this[int i] => new(this, i);
 
-    [Obsolete(BoxingAllocationError, true)]
-    IEnumerator<Neuron> IEnumerable<Neuron>.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-    [Obsolete(BoxingAllocationError, true)]
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
     /// <summary>Appends a neuron with default parameters and returns its index.</summary>
     internal int Add()
     {
@@ -101,7 +81,7 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
 
         var i = Count++;
 
-        // explicitly write to every field since positions might hold stale data for deleted neurons
+        // explicitly write to every field since positions might hold stale data from deleted neurons
         _inputCurrent[i] = 0f;
 
         // TODO: make customizable. currently biologically-inspired defaults
@@ -110,7 +90,7 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
         _resetPotential[i] = -75f; // mV, slight undershoot after a spike
         _leakRate[i]       = .1f;  // 1/ms
 
-        _spike[i]     = false;
+        _lastSpike[i] = double.NegativeInfinity;
         _threshold[i] = -55f; // mV, ~15 mV of headroom to fire
 
         _x[i] = 0f;
@@ -149,7 +129,7 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
         _resetPotential[i] = _resetPotential[last];
         _leakRate[i]       = _leakRate[last];
 
-        _spike[i]     = _spike[last];
+        _lastSpike[i] = _lastSpike[last];
         _threshold[i] = _threshold[last];
 
         _x[i] = _x[last];
@@ -168,16 +148,11 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
         Array.Resize(ref _resetPotential, size);
         Array.Resize(ref _leakRate,       size);
 
-        Array.Resize(ref _spike,     size);
+        Array.Resize(ref _lastSpike, size);
         Array.Resize(ref _threshold, size);
 
         Array.Resize(ref _x, size);
         Array.Resize(ref _y, size);
         Array.Resize(ref _z, size);
-    }
-
-    public Enumerator GetEnumerator()
-    {
-        return new Enumerator(this);
     }
 }
