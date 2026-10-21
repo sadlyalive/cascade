@@ -13,11 +13,15 @@ public class Diagnoser(int trials)
 
     public event EventHandler<decimal> OnFinish;
 
+    // [Conditional] deletes every call to these (arguments included) from any build that doesn't define DEBUG
+    // release builds exclude these methods automatically
+    [Conditional("DEBUG")]
     public void Start()
     {
         _stopwatch.Start();
     }
 
+    [Conditional("DEBUG")]
     public void Stop()
     {
         _dt += _stopwatch.ElapsedTicks;

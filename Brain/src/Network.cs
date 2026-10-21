@@ -1,63 +1,64 @@
 ﻿using System;
+using System.Diagnostics;
+using Brain.Data;
 using Brain.Data.Collection;
 
 namespace Brain;
 
 public sealed class Network
 {
-    /// <summary>
-    ///     <para>Per-step buffer that caches total synaptic current arriving at each postsynaptic neuron.</para>
-    /// </summary>
+    // per-step buffer for total synaptic current arriving at each postsynaptic neuron
     private float[] _current;
 
-    /// <summary>
-    ///     <para>
-    ///         Indices of spiking neurons from the last step. Only the first <see cref="_spikeCount" /> entries are valid.
-    ///     </para>
-    ///     <para>
-    ///         Propagation walks this instead of checking every neuron's <see cref="NeuronPool.Spike" /> flag, so its cost
-    ///         depends only on the number of spikes rather than a constant <c>O(n)</c>. <see cref="NeuronPool.Spike" /> is still
-    ///         written for outside readers (e.g. rendering), but <c>Step()</c> treats this list as the source of truth.
-    ///     </para>
-    /// </summary>
+    //indices of spiking neurons from the last step. propagation walks this instead of checking every neuron spike which
+    // would be O(n)
     private int[] _spikes;
+    private int   _spikeCount;
 
-    private int _spikeCount;
-
-    /// <summary>Creates a network of <paramref name="count" /> unconnected neurons with default parameters.</summary>
-    public Network(int count)
+    /// <summary>Creates a network of <paramref name="capacity" /> unconnected neurons with default parameters.</summary>
+    public Network(int capacity)
     {
-        Neurons    = new NeuronPool(count);
-        Connectome = new Connectome<float>(count);
+        Neurons    = new NeuronPool(capacity);
+        Connectome = new Connectome<float>(capacity);
 
-        // both sized to the pool's capacity, not its count, and kept that way by AddNeuron
+        // adhere to pool's final capacity since the raw parameter is consumer-provided
         _current = new float[Neurons.Capacity];
-        _spikes  = new int[Neurons.Capacity]; // worst case: every neuron fires on the same step
-
-        for (var i = 0; i < count; i++)
-            AddNeuron();
+        _spikes  = new int[Neurons.Capacity]; // sized to worst case where every neuron fires on the same step
     }
 
     /// <summary>
-    ///     <para>Two-way compressed sparse row matrix for synaptic weights.</para>
+    ///     <para>Tracks both inbound and outbound synapses and weights via two compressed sparse row matrices.</para>
     ///     <para>
-    ///         Exchanges some algorithmic complexity (and some SIMD and eager caching) for massively less spatial
-    ///         complexity in comparison to conventional 2D arrays. <i>Drosophila melanogaster</i>'s brain contains almost 400
+    ///         Exchanges some algorithmic complexity (and some SIMD and eager caching) for massively less spatial complexity
+    ///         in comparison to conventional dense 2D matrices. <i>Drosophila melanogaster</i>'s brain contains almost 400
     ///         times more synapses than soma on average, yet CSR still saves over 95% memory since their synaptic density is
     ///         still nowhere near <c>soma²</c>.
     ///     </para>
     /// </summary>
     public Connectome<float> Connectome { get; }
 
-    /// <summary>SoA for every neuron.</summary>
+    /// <summary>SoA for every neuron</summary>
     public NeuronPool Neurons { get; }
 
     public int Count => Neurons.Count;
 
+    /// <summary>Simulated time elapsed (ms)</summary>
+    public double Time { get; private set; }
+    
     public Diagnoser Diagnoser { get; } = new(1024);
 
-    /// <summary>Appends an unconnected neuron with default parameters and returns its index.</summary>
-    public int AddNeuron()
+    /// <summary>
+    ///     Raises when <see cref="RemoveNeuron(int)" /> calls and passes <c>(removed, moved)</c>. This is for consumers who
+    ///     store neural indices that risk staleness due to the remove-swap. <c>moved</c> assumes <c>removed</c>'s position.
+    ///     <c> moved = -1</c> implies the last neuron was removed.
+    /// </summary>
+    public event Action<int, int> NeuronRemoved;
+
+    /// <summary>
+    ///     Creates a standalone neuron with default parameters.
+    /// </summary>
+    /// <returns>The new <see cref="Neuron" /></returns>
+    public Neuron AddNeuron()
     {
         var i = Neurons.Add();
 
@@ -69,16 +70,12 @@ public sealed class Network
             Array.Resize(ref _spikes,  Neurons.Capacity);
         }
 
-        return i;
+        return Neurons[i];
     }
 
     /// <summary>
-    ///     <para>
-    ///         Deletes the neuron at <paramref name="i" /> and every relevant synapse.
-    ///     </para>
-    ///     <para>
-    ///         Performs a swap-remove such that the last neuron moves into <paramref name="i" /> (state, synapses, etc.).
-    ///     </para>
+    ///     Deletes the neuron at <paramref name="i" /> and every relevant synapse. Uses swap-remove, which may invalidate
+    ///     external caching (see <see cref="NeuronRemoved" />).
     /// </summary>
     public void RemoveNeuron(int i)
     {
@@ -96,21 +93,20 @@ public sealed class Network
         Connectome.CommitChanges();
 
         // sever synapses to and from the removing neuron
-        // iterating a row while writing removals is safe because removals are buffered and, even if the buffer fills
-        // and commits midway, the spans view old arrays
+        // iterating a row while writing removals is safe because To/From spans don't change
         foreach (var pre in Connectome.To(i).Columns)
             Connectome[pre, i] = 0f;
 
         foreach (var post in Connectome.From(i).Columns)
             Connectome[i, post] = 0f;
 
-        // commit so reoccupation does not see stale synapses on To/From in the case that the removing neuron and the
-        // swapping neuron were connected
+        // commit so no stale synapses exist when NeuronPool.RemoveAt() moves the last neuron to the remover's index
         Connectome.CommitChanges();
 
-        // adhere to swap-remove by moving all synapses from the old index to the new vacant one
+        // swap-remove
         var oldIndex = Neurons.RemoveAt(i);
 
+        // move all synapses at the last index to the remover's now-vacant index
         if (oldIndex >= 0)
         {
             foreach (var (pre, weight) in Connectome.To(oldIndex))
@@ -131,10 +127,12 @@ public sealed class Network
         for (var j = _spikeCount - 1; j >= 0; j--)
         {
             if (_spikes[j] == i)
-                _spikes[j] = _spikes[_spikeCount--]; // swap-remove the dead neuron's spike if present
+                _spikes[j] = _spikes[--_spikeCount]; // swap-remove the dead neuron's spike if present
             else if (_spikes[j] == oldIndex)
                 _spikes[j] = i; // update the moving neuron's index in the spike list
         }
+
+        NeuronRemoved?.Invoke(i, oldIndex);
     }
 
     /// <summary>
@@ -145,13 +143,16 @@ public sealed class Network
     {
         var dt = (float)time.TotalMilliseconds;
 
+        // propagation needs to see up-to-date rows and columns
+        Connectome.CommitChanges();
+
         // TODO: change to single-arg Array.Clear(arr) on unity 6.8 CoreCLR
         Array.Clear(_current, 0, _current.Length);
 
         Diagnoser.Start();
 
         // gather synaptic current from last step
-        // walks ONLY outbound rows of neurons that spiked, in contrast to every (pre, post) pair for 2D arrays
+        // walks only outbound rows in contrast to every (pre, post) pair for 2D arrays
         // TODO: spike list still holds previous results which means dt bottlenecks propagation speed
         for (var i = 0; i < _spikeCount; i++)
         {
@@ -172,8 +173,11 @@ public sealed class Network
         var resetPotential = Neurons.ResetPotential;
         var leakRate       = Neurons.LeakRate;
 
-        var spike     = Neurons.Spike;
+        var lastSpike = Neurons.LastSpike;
         var threshold = Neurons.Threshold;
+
+        // spikes occur at end of step
+        Time += time.TotalMilliseconds;
 
         // discard spikes in last step and begin recording new spikes
         _spikeCount = 0;
@@ -190,14 +194,13 @@ public sealed class Network
             // forward Euler integration (value += rate * dt)
             potential[i] += (leak + current) * dt;
 
-            // fire if current potential exceeds threshold
-            var spiked = potential[i] >= threshold[i];
+            // skip if no spike
+            if (potential[i] < threshold[i])
+                continue;
 
-            spike[i] = spiked;
+            potential[i] = resetPotential[i];
+            lastSpike[i] = Time;
 
-            if (!spiked) continue;
-
-            potential[i]           = resetPotential[i];
             _spikes[_spikeCount++] = i;
         }
     }
