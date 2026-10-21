@@ -7,13 +7,43 @@ namespace Cascade.UI
     [RequireComponent(typeof(UIDriver))]
     public class TimeWidget : MonoBehaviour
     {
-        [SerializeField]
-        private Sandbox sandbox;
+        [SerializeField] private float   minSpeed = 0.001f;
+        [SerializeField] private float   maxSpeed = 10f;
+        [SerializeField] private Sandbox sandbox;
 
+        private float    _sliderRange;
         private UIDriver _ui;
+
+        public float MinSpeed
+        {
+            get => minSpeed;
+            private set
+            {
+                minSpeed     = value;
+                _sliderRange = Mathf.Log(maxSpeed / value);
+            }
+        }
+
+        public float MaxSpeed
+        {
+            get => maxSpeed;
+            private set
+            {
+                maxSpeed     = value;
+                _sliderRange = Mathf.Log(value / minSpeed);
+            }
+        }
+
+        private void Awake()
+        {
+            MinSpeed = minSpeed;
+            MaxSpeed = maxSpeed;
+        }
 
         private void OnEnable()
         {
+            _sliderRange = Mathf.Log(maxSpeed / minSpeed);
+
             _ui          =  GetComponent<UIDriver>();
             _ui.Reloaded += Latch;
 
@@ -34,27 +64,37 @@ namespace Cascade.UI
             var slider = menu.Q<Slider>();
 
             field.RegisterValueChangedCallback(args => Apply(args.newValue));
-            slider.RegisterValueChangedCallback(args => ApplyRound(args.newValue));
+            slider.RegisterValueChangedCallback(args =>
+                {
+                    const int digits = 3;
 
-            ApplyRound(slider.value);
+                    var v = args.newValue;
+
+                    if (v > 0f)
+                    {
+                        v = MinSpeed * Mathf.Exp(v * _sliderRange);
+                        var scale = Math.Pow(10, digits - 1 - Math.Floor(Math.Log10(v))); // sig fig scale
+                        v = (float)(Math.Round(v * scale) / scale);                       // apply round
+                    }
+
+                    Apply(v);
+                }
+            );
+
+            Apply(sandbox.TimeScale);
             return;
 
             // push clamped result to sandbox and back into both field and slider
             // MUST use `SetValueWithoutNotify` to avoid recursive callback
-            void Apply(float v)
+            void Apply(float speed)
             {
-                v = Mathf.Clamp(v, 0f, ushort.MaxValue);
+                speed = Mathf.Clamp(speed, 0f, ushort.MaxValue);
 
-                field.SetValueWithoutNotify(v);
-                slider.SetValueWithoutNotify(v);
+                sandbox.TimeScale = speed;
+                field.SetValueWithoutNotify(speed);
 
-                sandbox.TimeScale = v;
-            }
-
-            void ApplyRound(float raw)
-            {
-                const decimal step = .1m;
-                Apply((float)(Math.Round((decimal)raw / step) * step)); // eliminate float imprecision
+                var alpha = speed <= MinSpeed ? 0f : Mathf.Clamp01(Mathf.Log(speed / MinSpeed) / _sliderRange);
+                slider.SetValueWithoutNotify(alpha);
             }
         }
     }

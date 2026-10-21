@@ -4,7 +4,7 @@
     --bg: rgb(64, 64, 88);
     --bg-bright: rgb(80, 80, 104);
     --bg-highlight: rgb(96, 96, 128);
-    --bright: rgb(224, 224, 256);
+    --bright: rgb(240, 240, 240);
     color: var(--bright);
     -unity-font-definition: url("project://database/Assets/UI/Fonts/Montserrat-Regular.ttf?fileID=12800000&guid=a9f4557353ba3924ba526318b5082f53&type=3#Montserrat-Regular");
 }
@@ -16,7 +16,7 @@
 
 .unity-base-field {
     padding: 0;
-    margin: 4px 0;
+    margin: 0;
     justify-content: space-between;
 }
 
@@ -37,6 +37,14 @@
     background-color: var(--dark);
 }
 
+.unity-popup-field {
+    width: 512px;
+}
+
+.unity-toggle__checkmark {
+    background-color: var(--bright);
+}
+
 .unity-toggle__input,
 .unity-toggle__checkmark {
     border-radius: 4px;
@@ -47,8 +55,46 @@
 }
 
 .unity-base-slider__tracker {
+    color: var(--bright);
     background-color: var(--dark);
     border-radius: 3px;
+}
+
+.unity-base-slider__dragger {
+    background-color: var(--bright);
+}
+
+.unity-base-dropdown__container-outer,
+.unity-base-dropdown__container-inner {
+    background-color: var(--bright);
+}
+
+.unity-base-dropdown__label {
+    color: var(--dark);
+}
+
+.unity-base-popup-field__text {
+    margin: 0;
+}
+
+.singleton {
+    width: auto;
+    height: 100%;
+
+    padding: 4px 0;
+}
+
+.singleton .unity-popup-field__input {
+    width: 128px;
+    margin: 0;
+    padding: 0 4px;
+
+    flex-grow: 1;
+    flex-shrink: 0;
+
+    color: var(--dark);
+    background-color: var(--bright);
+    border-radius: 4px;
 }
 
 .row-spacer {
@@ -67,4 +113,9 @@
     align-items: flex-start;
     justify-content: flex-start;
     background-color: var(--bg);
+}
+
+.drag-box {
+    position: absolute;
+    background-color: rgba(64, 64, 256, 0.25);
 }

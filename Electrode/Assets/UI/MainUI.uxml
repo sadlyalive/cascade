@@ -5,11 +5,12 @@
     <Style src="project://database/Assets/UI/Form.uss?fileID=7433441132597879392&amp;guid=3f08afcc5b0d48ddac5f215775231ec6&amp;type=3#Form"/>
     <ui:VisualElement name="topbar" class="topbar">
         <ui:VisualElement name="time-menu" class="time-menu row-spacer">
-            <ui:FloatField name="time-scale-field" label="dt" value="1" max-length="16" class="row-spacer"/>
-            <ui:Slider value="1" high-value="10" name="slider" class="slider"/>
+            <ui:FloatField name="time-scale-field" label="Speed" value="1" max-length="16" class="row-spacer"/>
+            <ui:Slider value="1" high-value="1" name="slider" class="slider"/>
         </ui:VisualElement>
         <ui:VisualElement name="menus" class="menu-container row-spacer"/>
-        <ui:Toggle label="Draw Gizmos" name="hint-toggle" value="true"/>
+        <ui:Toggle label="Draw gizmos" name="hint-toggle" value="true" class="row-spacer singleton"/>
+        <ui:DropdownField label="Draw synapses" name="synapse-mode" class="singleton"/>
     </ui:VisualElement>
     <ui:VisualElement name="form" class="form-container">
         <ui:Label name="title" class="form-title"/>
@@ -18,4 +19,5 @@
             <ui:Button name="apply" text="Apply"/>
         </ui:VisualElement>
     </ui:VisualElement>
+    <ui:VisualElement name="drag-box" class="drag-box hidden" style="flex-grow: 1;"/>
 </ui:UXML>

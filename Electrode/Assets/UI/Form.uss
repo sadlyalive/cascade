@@ -1,6 +1,6 @@
 .form-container {
     max-width: 25%;
-    max-height: 20%;
+    max-height: 40%;
     margin: var(--row-pad);
 
     flex-grow: 0;
@@ -43,12 +43,18 @@
 }
 
 .form-container .unity-composite-field__label {
+    width: 64px;
     padding: 9px 0; /* align main label with first axis label in composite (e.g., vector) fields */
 }
 
-.form-container .unity-base-field__label {
-    margin-right: 32px;
+.form-container .unity-base-field {
+    padding: 4px 0;
 }
+
+.form-container .unity-base-field__label {
+    margin-right: var(--row-pad);
+}
+
 
 .form-container .unity-base-text-field__input {
     min-width: 96px;
@@ -74,8 +80,8 @@
 
     /* vertical sliders position their dragger over the drag container's full height and do NOT account for insets on the
      * dragger itself (horizontal subtracts margins; vertical doesn't), so `top: 1px` makes the dragger bleed from the bottom
-     * by 1px. so the outline and 1px inset live on the slider's root (outside the drag container) and the dragger simply
-     * fills the container
+     * by 1px. the outline and 1px inset live on the slider's root (outside the drag container) and the dragger simply fills
+     * the container
      */
     padding: 1px;
     border-width: 1px;

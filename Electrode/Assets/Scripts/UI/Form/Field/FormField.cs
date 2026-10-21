@@ -4,7 +4,12 @@ using UnityEngine.UIElements;
 
 namespace Cascade.UI.Form.Field
 {
-    public abstract class FormField<T> : IFormField
+    /// <summary>
+    ///     A form input field that forms can query with <see cref="Value" />.
+    /// </summary>
+    /// <typeparam name="T">The input field's value type</typeparam>
+    /// <typeparam name="TElement">The type of UXML field to instantiate when built</typeparam>
+    public abstract class FormField<T, TElement> : IFormField where TElement : BaseField<T>, new()
     {
         private readonly T      _default;
         private readonly string _label;
@@ -17,13 +22,6 @@ namespace Cascade.UI.Form.Field
             _default = defaultValue;
         }
 
-        /// <summary>
-        ///     <para>
-        ///         The current value. Listeners (via <c>update()</c>) execute after Unity handles callback, so
-        ///         <see cref="Adjust" /> always applies correctly.
-        ///     </para>
-        ///     <para>Returns the preset default if the form field isn't in use.</para>
-        /// </summary>
         public T Value => _element != null ? _element.value : _default;
 
         public VisualElement Create()
@@ -37,7 +35,11 @@ namespace Cascade.UI.Form.Field
 
         public event Action Changed;
 
-        protected abstract BaseField<T> CreateElement(string label);
+        /// <summary>Builds the Unity element. Virtual for more setup (choices, a range, etc.).</summary>
+        protected virtual BaseField<T> CreateElement(string label)
+        {
+            return new TElement { label = label };
+        }
 
         /// <summary>Adjusts the final value after a user edit (e.g. a clamp). Identity by default.</summary>
         private protected virtual T Adjust(T value)
@@ -51,8 +53,9 @@ namespace Cascade.UI.Form.Field
 
             // apply adjustment only if it actually elicited a change
             if (!EqualityComparer<T>.Default.Equals(final, args.newValue))
-                _element.SetValueWithoutNotify(final);
+                return;
 
+            _element.SetValueWithoutNotify(final);
             Changed?.Invoke();
         }
     }

@@ -9,7 +9,7 @@
 }
 
 .time-menu .unity-float-field {
-    width: 64px;
+    width: 96px;
     height: 100%;
     flex-shrink: 0;
 }

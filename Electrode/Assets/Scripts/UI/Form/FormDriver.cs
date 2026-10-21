@@ -78,9 +78,7 @@ namespace Cascade.UI.Form
         /// <summary>Replaces the shell's contents with <paramref name="form" />'s inputs and reveals it.</summary>
         public void Reveal(ActionForm form)
         {
-            form.Validate();
-
-            Detach(); // a form being replaced never went through Hide
+            Detach(); // a form being replaced never goes through Hide()
 
             _title.text = form.Title;
             _fields.Clear();
@@ -141,7 +139,7 @@ namespace Cascade.UI.Form
 
         private void Apply()
         {
-            _current?.OnApply();
+            _current?.Apply();
             Hide();
         }
 
