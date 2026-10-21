@@ -146,36 +146,46 @@ public class CsrMatrix<T>
 
         for (var r = 0; r < Rows; r++)
         {
-            // read this row's old end before row r + 1 overwrites it. its old start is never read: colI is already
-            // there
+            // row's original end pointer
+            // colI is already at the start pointer
             var rowEnd = _rowPtr[r + 1];
 
             _rowPtr[r] = nnz;
 
             while (true)
             {
-                var pending  = batch[batchI];
                 var hasOld   = colI < rowEnd;
-                var hasWrite = batchI < changes && pending.Row == r;
+                var hasWrite = batchI < changes && batch[batchI].Row == r;
 
-                if (!hasOld && !hasWrite)
+                if (!hasOld && !hasWrite) // nothing else to place in this row
                     break;
 
-                // pending write goes first only if its column comes first, or it replaces the existing entry
-                var placeWrite = hasWrite && (!hasOld || pending.Column <= _columns[colI]);
+                // IMPORTANT: batch[batchI] doesn't guaranteeably exist since we don't escape on !hasWrite
+                // pending write goes first only if it exists && (no more old columns remain || it comes before this column)
+                var placeWrite = hasWrite && (!hasOld || batch[batchI].Column <= _columns[colI]);
 
-                var col = placeWrite ? pending.Column : _columns[colI];
-                var val = placeWrite ? pending.Value : _values[colI];
+                int col;
+                T   val;
 
                 if (placeWrite)
                 {
-                    if (hasOld && _columns[colI] == col)
-                        colI++; // replace/drop the old entry
+                    var write = batch[batchI];
 
-                    batchI++;
+                    col = write.Column;
+                    val = write.Value;
+                    
+                    // replace/drop the old entry if it exists and is the same column
+                    if (hasOld && _columns[colI] == col)
+                        colI++;
+
+                    batchI++; // scan pending write
                 }
                 else
-                    colI++;
+                {
+                    col = _columns[colI];
+                    val = _values[colI];
+                    colI++; // scan next column in row
+                }
 
                 if (IsDefault(val)) // default value considered removal
                     continue;
