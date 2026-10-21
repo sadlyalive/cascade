@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 252257374}
   - component: {fileID: 252257373}
   - component: {fileID: 252257376}
+  - component: {fileID: 252257377}
   m_Layer: 0
   m_Name: ui
   m_TagString: Untagged
@@ -238,6 +239,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6c68b4cf387b4aaa83aca272173b2056, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Cascade::Cascade.UI.TimeWidget
+  minSpeed: 0.001
+  maxSpeed: 10
   sandbox: {fileID: 1365696033}
 --- !u!114 &252257374
 MonoBehaviour:
@@ -263,6 +266,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a08285beaa22dfd4ebffdde8bab25937, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Cascade::Cascade.UI.Menu.MenuDriver
+  view: {fileID: 330585548}
   sandbox: {fileID: 1365696033}
   hint: {fileID: 1365696035}
 --- !u!114 &252257376
@@ -278,6 +282,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Cascade::Cascade.UI.HintToggleWidget
   hint: {fileID: 1365696035}
+--- !u!114 &252257377
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 252257368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ab46a3bd182efe49aab838925f33284, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Cascade::Cascade.UI.SynapseModeDropdown
+  renderer: {fileID: 1365696036}
+  sandbox: {fileID: 1365696033}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -503,6 +521,8 @@ GameObject:
   - component: {fileID: 1365696033}
   - component: {fileID: 1365696032}
   - component: {fileID: 1365696035}
+  - component: {fileID: 1365696036}
+  - component: {fileID: 1365696037}
   m_Layer: 0
   m_Name: simulation
   m_TagString: Untagged
@@ -523,6 +543,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NeuronRenderer
   neuronScale: 0.08
+  glowSeconds: 0.15
 --- !u!114 &1365696033
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -535,7 +556,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1530fcb047592f049b2f107445aa1e14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkRunner
-  <TimeScale>k__BackingField: 1
+  maxStepsPerFrame: 256
 --- !u!4 &1365696034
 Transform:
   m_ObjectHideFlags: 0
@@ -564,6 +585,45 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Cascade::Cascade.BoundsPreview
   axisLength: 4
+--- !u!114 &1365696036
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1365696031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a2eb96ee3cee5a44be9e84cee5b4319, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Cascade::Cascade.SynapseRenderer
+  widthPerWeight: 0.003
+  minWidth: 0.003
+  maxWidth: 0.03
+  headLength: 0.06
+  headWidthScale: 2.5
+  reciprocalOffset: 0.02
+  restColor: {r: 0.6, g: 0.65, b: 0.8, a: 0.35}
+  activeColor: {r: 1, g: 0.9, b: 0.1, a: 0.9}
+  fadeStart: 8
+  fadeEnd: 16
+  <Filter>k__BackingField: 0
+--- !u!114 &1365696037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1365696031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eeb18c96ac796434a93fb01539cb1d4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Cascade::Cascade.Select.Selector
+  view: {fileID: 330585545}
+  ui: {fileID: 252257369}
+  pickRadius: 4
+  dragThreshold: 4
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

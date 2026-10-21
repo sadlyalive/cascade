@@ -8,13 +8,12 @@ namespace Cascade
     [NoReorder]
     public sealed class CameraDriver : MonoBehaviour
     {
-        // smoothing lives in angles to preserve spherical movement while orbiting around target
+        // smoothing lives as angles to preserve spherical movement while orbiting around target
         private float   _smoothPitch;
         private Vector3 _smoothTarget;
         private float   _smoothYaw;
         private float   _smoothZoom;
 
-        // a drag belongs to whatever it started on
         private bool _dragStartedOverUI;
 
         [Header("Input")]
@@ -41,11 +40,7 @@ namespace Cascade
         [SerializeField] private float orbitSpeed = 0.2f;
         [SerializeField] private float panSpeed   = 0.004f;
 
-        /// <summary>
-        ///     <para>
-        ///         Seconds to close ~63% of the remaining distance to <see cref="Target" />.
-        ///     </para>
-        /// </summary>
+        /// <summary>Seconds to close ~63% of the remaining distance to <see cref="Target" />.</summary>
         [SerializeField] private float smoothing = 0.1f;
 
         // TODO:
@@ -92,7 +87,10 @@ namespace Cascade
             // a drag that starts on the ui never orbits/pans; one that starts on the scene keeps going when the pointer
             // crosses over the ui
             if (mouse.middleButton.wasPressedThisFrame)
+            {
                 _dragStartedOverUI = overUI;
+                Cursor.lockState   = CursorLockMode.Confined;
+            }
 
             if (mouse.middleButton.isPressed && !_dragStartedOverUI)
             {
@@ -109,9 +107,12 @@ namespace Cascade
                     Pitch -= delta.y * orbitSpeed;
                 }
             }
+            else
+                Cursor.lockState = CursorLockMode.None;
 
-            // ui panels own the scroll wheel while hovered
-            if (!overUI)
+
+            // ui panels own the scroll wheel while hovered, and ctrl + scroll belongs to Selector (grow selection)
+            if (!overUI && !kb.ctrlKey.isPressed)
                 Zoom -= mouse.scroll.ReadValue().y * zoomSpeed;
 
             if (smoothing <= 0f)
