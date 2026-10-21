@@ -18,9 +18,9 @@ namespace Cascade
 
         private const int VerticesPerSoma = 6; // one quad, two triangles
 
-        private static readonly int NeuronBufferId = Shader.PropertyToID("_NeuronBuffer");
-        private static readonly int NeuronScaleId  = Shader.PropertyToID("_NeuronScale");
-        private static readonly int GlowTimeId     = Shader.PropertyToID("_GlowTime");
+        private static readonly int NeuronBufferId = Shader.PropertyToID("neuron_buffer");
+        private static readonly int NeuronScaleId  = Shader.PropertyToID("neuron_scale");
+        private static readonly int GlowTimeId     = Shader.PropertyToID("glow_time");
 
         [SerializeField] private float neuronScale = 0.08f;
 

@@ -24,27 +24,27 @@ Shader "Custom/Wire"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
-            struct Attributes
+            struct attributes
             {
-                float3 positionOS : POSITION;
+                float3 position_os : POSITION;
                 half4 color : COLOR;
             };
 
-            struct Varyings
+            struct varyings
             {
-                float4 positionHCS : SV_POSITION;
+                float4 position_hcs : SV_POSITION;
                 half4 color : COLOR;
             };
 
-            Varyings vert(Attributes IN)
+            varyings vert(attributes IN)
             {
-                Varyings OUT;
-                OUT.positionHCS = TransformObjectToHClip(IN.positionOS);
+                varyings OUT;
+                OUT.position_hcs = TransformObjectToHClip(IN.position_os);
                 OUT.color = IN.color;
                 return OUT;
             }
 
-            half4 frag(Varyings IN) : SV_Target
+            half4 frag(varyings IN) : SV_Target
             {
                 return IN.color;
             }

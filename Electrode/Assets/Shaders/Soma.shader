@@ -29,69 +29,69 @@ Shader "Custom/Soma"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             // field order and types must match NeuronRenderer.NeuronInstance exactly
-            struct NeuronInstance
+            struct neuron_instance
             {
                 float3 position;
                 float age; // simulated ms since the last spike
                 float selected;
             };
 
-            StructuredBuffer<NeuronInstance> _NeuronBuffer;
-            float _NeuronScale; // diameter in world units
-            float _GlowTime; // simulated ms for a spike's glow to fade to ~37% (see NeuronRenderer.GlowTime)
+            StructuredBuffer<neuron_instance> neuron_buffer;
+            float neuron_scale; // diameter in world units
+            float glow_time; // simulated ms for a spike's glow to fade to ~37% (see NeuronRenderer.GlowTime)
 
             // selected somas grow by this much, and the extra margin becomes their ring. somas are only a few pixels wide
             // at a distance, so a ring drawn inside the normal disc would vanish
-            static const float SelectedScale = 1.6;
-            static const float RingStart = 0.55; // squared radius (in -1..1 corner units) where the ring begins
+            static const float selected_scale = 1.6;
+            static const float ring_start = 0.55; // squared radius (in -1..1 corner units) where the ring begins
 
             // two triangles covering the square from (-1, -1) to (1, 1)
-            static const float2 Corners[6] =
+            static const float2 corners[6] =
             {
                 float2(-1, -1), float2(1, -1), float2(1, 1),
                 float2(-1, -1), float2(1, 1), float2(-1, 1)
             };
 
-            struct Varyings
+            struct varyings
             {
-                float4 positionHCS : SV_POSITION;
+                float4 position_hcs : SV_POSITION;
                 float2 corner : TEXCOORD0; // -1..1 across the quad, used to cut the circle out
                 float glow : TEXCOORD1; // 1 the step a neuron spikes, fading toward 0 after
                 float selected : TEXCOORD2;
             };
 
-            Varyings vert(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
+            varyings vert(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
             {
-                NeuronInstance data = _NeuronBuffer[instanceID];
-                float2 corner = Corners[vertexID];
+                neuron_instance data = neuron_buffer[instance_id];
+                float2 corner = corners[vertex_id];
 
                 // view space is the camera's own frame: its x and y axes are always screen right and screen up. so
                 // offsetting the corners along x/y there makes the quad face the camera from any angle. the offset is
                 // in world units, so perspective still shrinks it with distance exactly like a real sphere
-                float3 centerVS = TransformWorldToView(data.position);
-                float scale = _NeuronScale * lerp(1, SelectedScale, data.selected);
-                float3 positionVS = centerVS + float3(corner * (scale * 0.5), 0);
+                float3 center_vs = TransformWorldToView(data.position);
+                float scale = neuron_scale * lerp(1, selected_scale, data.selected);
+                float3 position_vs = center_vs + float3(corner * (scale * 0.5), 0);
 
-                Varyings OUT;
-                OUT.positionHCS = TransformWViewToHClip(positionVS);
+                varyings OUT;
+                OUT.position_hcs = TransformWViewToHClip(position_vs);
                 OUT.corner = corner;
-                OUT.glow = exp(-data.age / _GlowTime);
+                OUT.glow = exp(-data.age / glow_time);
                 OUT.selected = data.selected;
                 return OUT;
             }
 
-            half4 frag(Varyings IN) : SV_Target
+            half4 frag(varyings IN) : SV_Target
             {
                 // everything outside the inscribed circle is thrown away, which turns the square into a disc
-                float radiusSq = dot(IN.corner, IN.corner);
-                clip(1 - radiusSq);
+                float radius_sq = dot(IN.corner, IN.corner);
+                clip(1 - radius_sq);
 
-                if (IN.selected > 0 && radiusSq > RingStart)
+                if (IN.selected > 0 && radius_sq > ring_start)
                     return half4(1, 1, 1, 1);
 
-                half3 restingColor = half3(0.2, 0.4, 0.9);
-                half3 spikedColor = half3(1.0, 0.9, 0.1);
-                half3 color = lerp(restingColor, spikedColor, IN.glow);
+                half3 resting_color = half3(0.2, 0.4, 0.9);
+                half3 spiked_color = half3(1.0, 0.9, 0.1);
+                half3 color = lerp(resting_color, spiked_color, IN.glow);
                 return half4(color, 1);
             }
             ENDHLSL

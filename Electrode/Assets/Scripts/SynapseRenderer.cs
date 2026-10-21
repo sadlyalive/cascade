@@ -42,21 +42,21 @@ namespace Cascade
         private const float Far                = 10000f;
         private const int   VerticesPerSynapse = 9; // shaft quad (6) + head triangle (3)
 
-        private static readonly int NeuronBufferId   = Shader.PropertyToID("_NeuronBuffer");
-        private static readonly int SynapseBufferId  = Shader.PropertyToID("_SynapseBuffer");
-        private static readonly int SomaRadiusId     = Shader.PropertyToID("_SomaRadius");
-        private static readonly int WidthPerWeightId = Shader.PropertyToID("_WidthPerWeight");
-        private static readonly int MinWidthId       = Shader.PropertyToID("_MinWidth");
-        private static readonly int MaxWidthId       = Shader.PropertyToID("_MaxWidth");
-        private static readonly int HeadLengthId     = Shader.PropertyToID("_HeadLength");
-        private static readonly int HeadWidthScaleId = Shader.PropertyToID("_HeadWidthScale");
-        private static readonly int SideOffsetId     = Shader.PropertyToID("_SideOffset");
-        private static readonly int RestColorId      = Shader.PropertyToID("_RestColor");
-        private static readonly int ActiveColorId    = Shader.PropertyToID("_ActiveColor");
-        private static readonly int FadeStartId      = Shader.PropertyToID("_FadeStart");
-        private static readonly int FadeEndId        = Shader.PropertyToID("_FadeEnd");
-        private static readonly int GlowTimeId       = Shader.PropertyToID("_GlowTime");
-        private static readonly int SelectionOnlyId  = Shader.PropertyToID("_SelectionOnly");
+        private static readonly int NeuronBufferId   = Shader.PropertyToID("neuron_buffer");
+        private static readonly int SynapseBufferId  = Shader.PropertyToID("synapse_buffer");
+        private static readonly int SomaRadiusId     = Shader.PropertyToID("soma_radius");
+        private static readonly int WidthPerWeightId = Shader.PropertyToID("width_per_weight");
+        private static readonly int MinWidthId       = Shader.PropertyToID("min_width");
+        private static readonly int MaxWidthId       = Shader.PropertyToID("max_width");
+        private static readonly int HeadLengthId     = Shader.PropertyToID("head_length");
+        private static readonly int HeadWidthScaleId = Shader.PropertyToID("head_width_scale");
+        private static readonly int SideOffsetId     = Shader.PropertyToID("side_offset");
+        private static readonly int RestColorId      = Shader.PropertyToID("rest_color");
+        private static readonly int ActiveColorId    = Shader.PropertyToID("active_color");
+        private static readonly int FadeStartId      = Shader.PropertyToID("fade_start");
+        private static readonly int FadeEndId        = Shader.PropertyToID("fade_end");
+        private static readonly int GlowTimeId       = Shader.PropertyToID("glow_time");
+        private static readonly int SelectionOnlyId  = Shader.PropertyToID("selection_only");
 
         [Header("Shape")]
         [SerializeField] private float widthPerWeight = 0.003f;
