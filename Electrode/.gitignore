@@ -57,3 +57,6 @@ UIElementsSchema/
 
 # include rider project-specific settings
 !*.sln.DotSettings
+
+# unity recovery files (includes meta folders)
+**/Assets/_Recovery*
