@@ -16,23 +16,30 @@ namespace Brain.Data;
 ///         dereferences and assigns <c>pool._potential[i]</c> to <c>x</c>.
 ///     </para>
 /// </summary>
-public readonly struct Neuron(NeuronPool pool, int i) : IEquatable<Neuron>
+public readonly struct Neuron : IEquatable<Neuron>
 {
-    public int Id { get; } = i;
+    private readonly int        _id;
+    private readonly NeuronPool _pool;
 
-    public ref float Potential      => ref pool.Potential[Id];
-    public ref float RestPotential  => ref pool.RestPotential[Id];
-    public ref float ResetPotential => ref pool.ResetPotential[Id];
-    public ref float LeakRate       => ref pool.LeakRate[Id];
+    internal Neuron(NeuronPool pool, int id)
+    {
+        _pool = pool;
+        _id   = id;
+    }
 
-    public ref float InputCurrent => ref pool.InputCurrent[Id];
+    public ref float Potential      => ref _pool.Potential[_id];
+    public ref float RestPotential  => ref _pool.RestPotential[_id];
+    public ref float ResetPotential => ref _pool.ResetPotential[_id];
+    public ref float LeakRate       => ref _pool.LeakRate[_id];
 
-    public ref double LastSpike => ref pool.LastSpike[Id];
-    public ref float  Threshold => ref pool.Threshold[Id];
+    public ref float InputCurrent => ref _pool.InputCurrent[_id];
 
-    public ref float X => ref pool.X[Id];
-    public ref float Y => ref pool.Y[Id];
-    public ref float Z => ref pool.Z[Id];
+    public ref double LastSpike => ref _pool.LastSpike[_id];
+    public ref float  Threshold => ref _pool.Threshold[_id];
+
+    public ref float X => ref _pool.X[_id];
+    public ref float Y => ref _pool.Y[_id];
+    public ref float Z => ref _pool.Z[_id];
 
     public void MoveTo(float x, float y, float z)
     {
@@ -43,7 +50,7 @@ public readonly struct Neuron(NeuronPool pool, int i) : IEquatable<Neuron>
 
     public static implicit operator int(Neuron n)
     {
-        return n.Id;
+        return n._id;
     }
 
     public static bool operator ==(Neuron l, Neuron r)
@@ -58,16 +65,16 @@ public readonly struct Neuron(NeuronPool pool, int i) : IEquatable<Neuron>
 
     public bool Equals(Neuron other)
     {
-        return Id == other.Id;
+        return _id == other._id;
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is Neuron other && Equals(other);
     }
 
     public override int GetHashCode()
     {
-        return Id;
+        return _id;
     }
 }

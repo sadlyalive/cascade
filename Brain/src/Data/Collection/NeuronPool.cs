@@ -6,19 +6,19 @@ namespace Brain.Data.Collection;
 /// <summary>Storage for every neuron's state in a structure of arrays.</summary>
 public sealed partial class NeuronPool : IEnumerable<Neuron>
 {
-    private float[] _inputCurrent;
+    private float[] _inputCurrent = [];
 
-    private float[] _potential;
-    private float[] _restPotential;
-    private float[] _resetPotential;
-    private float[] _leakRate;
+    private float[] _potential      = [];
+    private float[] _restPotential  = [];
+    private float[] _resetPotential = [];
+    private float[] _leakRate       = [];
 
-    private double[] _lastSpike;
-    private float[]  _threshold;
+    private double[] _lastSpike = [];
+    private float[]  _threshold = [];
 
-    private float[] _x;
-    private float[] _y;
-    private float[] _z;
+    private float[] _x = [];
+    private float[] _y = [];
+    private float[] _z = [];
 
     /// <summary>Creates an empty pool with preallocation for <paramref name="capacity" /> neurons.</summary>
     internal NeuronPool(int capacity)

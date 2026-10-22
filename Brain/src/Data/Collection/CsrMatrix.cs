@@ -31,13 +31,13 @@ public class CsrMatrix<T>
 
     private int Rows => _rowPtr.Length - 1;
 
-    public T this[int row, int col]
+    public T? this[int row, int col]
     {
         get => Get(row, col);
         set => Set(row, col, value);
     }
 
-    public T Get(int row, int col)
+    public T? Get(int row, int col)
     {
         // pending writes are newer and take precedence
         if (_pending.TryGetValue(new Cell(row, col), out var pending))
@@ -48,7 +48,7 @@ public class CsrMatrix<T>
 
         var j = FindInRow(row, col);
 
-        return j < 0 ? default : _values[j];
+        return j < 0 ? default! : _values[j];
     }
 
     public RowSpan<T> GetRow(int row)
@@ -63,20 +63,20 @@ public class CsrMatrix<T>
         return new RowSpan<T>(_columns.AsSpan(start, len), _values.AsSpan(start, len));
     }
 
-    public void Set(int row, int col, T value)
+    public void Set(int row, int col, T? value)
     {
         var cell = new Cell(row, col);
 
         // check for an existing pending write and just overwrite it if present
         if (_pending.ContainsKey(cell))
         {
-            _pending[cell] = value;
+            _pending[cell] = value!;
             return;
         }
 
         var existing = row < Rows ? FindInRow(row, col) : -1;
 
-        if (IsDefault(value))
+        if (IsDefault(value!))
         {
             // removing something that doesn't exist (and isn't pending, see above) changes nothing
             if (existing < 0)
@@ -88,7 +88,7 @@ public class CsrMatrix<T>
         {
             // quick update. safe because we already checked pending writes, so no older pending write can overwrite
             // this on commit
-            _values[existing] = value;
+            _values[existing] = value!;
             return;
         }
         else
@@ -100,7 +100,7 @@ public class CsrMatrix<T>
         if (_pending.Count >= Math.Max(InitialCommitThreshold, _columns.Length))
             CommitChanges();
 
-        _pending[cell] = value;
+        _pending[cell] = value!;
     }
 
     // grow matrix to max(rows, Rows * 1.5)
@@ -161,7 +161,8 @@ public class CsrMatrix<T>
                     break;
 
                 // IMPORTANT: batch[batchI] doesn't guaranteeably exist since we don't escape on !hasWrite
-                // pending write goes first only if it exists && (no more old columns remain || it comes before this column)
+                // pending write goes first only if it exists && (no more old columns remain || it comes before this
+                // column)
                 var placeWrite = hasWrite && (!hasOld || batch[batchI].Column <= _columns[colI]);
 
                 int col;
@@ -173,7 +174,7 @@ public class CsrMatrix<T>
 
                     col = write.Column;
                     val = write.Value;
-                    
+
                     // replace/drop the old entry if it exists and is the same column
                     if (hasOld && _columns[colI] == col)
                         colI++;
@@ -230,9 +231,9 @@ public class CsrMatrix<T>
         return -1;
     }
 
-    private static bool IsDefault(T value)
+    private static bool IsDefault(T? value)
     {
-        return EqualityComparer<T>.Default.Equals(value, default);
+        return EqualityComparer<T>.Default.Equals(value!, default!);
     }
 
     // better than repeating row, col, and val arrays along with an addition seq array

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using Brain.Data;
 using Brain.Data.Collection;
 
@@ -44,7 +43,7 @@ public sealed class Network
 
     /// <summary>Simulated time elapsed (ms)</summary>
     public double Time { get; private set; }
-    
+
     public Diagnoser Diagnoser { get; } = new(1024);
 
     /// <summary>
@@ -52,7 +51,7 @@ public sealed class Network
     ///     store neural indices that risk staleness due to the remove-swap. <c>moved</c> assumes <c>removed</c>'s position.
     ///     <c> moved = -1</c> implies the last neuron was removed.
     /// </summary>
-    public event Action<int, int> NeuronRemoved;
+    public event Action<int, int>? NeuronRemoved;
 
     /// <summary>
     ///     Creates a standalone neuron with default parameters.

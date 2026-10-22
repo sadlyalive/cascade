@@ -30,7 +30,7 @@ public sealed class Connectome<T>
     /// </summary>
     public int Version { get; private set; }
 
-    public T this[int pre, int post]
+    public T? this[int pre, int post]
     {
         get => _outbound[pre, post];
         set

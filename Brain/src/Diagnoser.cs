@@ -11,7 +11,7 @@ public class Diagnoser(int trials)
     private long _dt;
     public  int  TrialsPerDiagnosis { get; } = trials;
 
-    public event EventHandler<decimal> OnFinish;
+    public event EventHandler<decimal>? OnFinish;
 
     // [Conditional] deletes every call to these (arguments included) from any build that doesn't define DEBUG
     // release builds exclude these methods automatically

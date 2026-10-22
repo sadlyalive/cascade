@@ -7,14 +7,8 @@
          which could create dependency mismatches -->
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- match csc.rsp (Unity side) so both TFMs fail on the same things -->
     <LangVersion>12</LangVersion>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="src\**\*.cs" />
-    <Folder Include="src\Data\Collection\Connectome\" />
-  </ItemGroup>
 
   <Target Name="CopyToUnity" AfterTargets="Build" Condition="'$(TargetFramework)' == 'netstandard2.1'">
     <Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb"
