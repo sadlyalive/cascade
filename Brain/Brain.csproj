@@ -16,4 +16,9 @@
     <Folder Include="src\Data\Collection\Connectome\" />
   </ItemGroup>
 
+  <Target Name="CopyToUnity" AfterTargets="Build" Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb"
+          DestinationFolder="$(MSBuildProjectDirectory)\..\Electrode\Assets\Plugins\Brain" />
+  </Target>
+
 </Project>

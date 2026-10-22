@@ -1,0 +1,8 @@
+# build outputs
+bin/
+obj/
+
+# IDE states
+.idea/
+.vs/
+*.user

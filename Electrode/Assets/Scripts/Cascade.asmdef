@@ -2,7 +2,6 @@
   "name": "Cascade",
   "rootNamespace": "Cascade",
   "references": [
-    "GUID:37ad61b435c76db4e94ce89042b36394",
     "GUID:75469ad4d38634e559750d17036d5f7c"
   ],
   "includePlatforms": [],

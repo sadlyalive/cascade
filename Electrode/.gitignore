@@ -60,3 +60,6 @@ UIElementsSchema/
 
 # unity recovery files (includes meta folders)
 **/Assets/_Recovery*
+
+# ignore brain lib dll build
+Assets/Plugins/Brain/
