@@ -14,9 +14,12 @@ namespace Cascade.UI.Form.Soma
         // TODO: provide options for all neural properties
         private readonly IntFormField     _count;
         private readonly Vector3FormField _position;
-        private readonly Sandbox          _sandbox;
 
-        public CreateForm(Sandbox sandbox, Hint hint, CameraDriver view) : base("Create neurons", hint, WireMesh.Sphere)
+        public CreateForm(Sandbox sandbox, Hint hint, CameraDriver view) : base(sandbox,
+            "Create neurons",
+            true,
+            hint,
+            WireMesh.Sphere)
         {
             _count = Add(new IntFormField
             {
@@ -29,7 +32,6 @@ namespace Cascade.UI.Form.Soma
                 Label = "Position",
                 Value = view.Target
             });
-            _sandbox = sandbox;
         }
 
         public override void Apply()
@@ -38,7 +40,7 @@ namespace Cascade.UI.Form.Soma
             var count = _count.Value;
 
             for (var i = 0; i < count; i++)
-                _sandbox.Network.AddNeuron().MoveTo(pos);
+                Network.AddNeuron().MoveTo(pos);
         }
 
         protected override void Preview(Hint hint)

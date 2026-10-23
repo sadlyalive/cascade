@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Brain;
+using Brain.Data.Collection;
+using Cascade.Select;
+using Cascade.UI.Form.Driver;
 using Cascade.UI.Form.Field;
 using Random = Unity.Mathematics.Random;
 
@@ -19,10 +23,22 @@ namespace Cascade.UI.Form
     {
         private readonly List<IFormField> _fields = new();
 
-        protected ActionForm(string title)
+        protected ActionForm(Sandbox sandbox, string title, bool appendSelectionCount = false)
         {
+            Sandbox = sandbox;
+
+            if (appendSelectionCount)
+                title += $" ({Selection.Count} selected)";
+
             Title = title;
         }
+
+        // convenience getters since most forms need some component of sandbox
+        protected Sandbox   Sandbox   { get; }
+        protected Network   Network   => Sandbox.Network;
+        protected Selection Selection => Sandbox.Selection;
+
+        protected Connectome<float> Connectome => Network.Connectome;
 
         public string Title { get; }
 

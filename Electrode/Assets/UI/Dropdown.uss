@@ -8,7 +8,7 @@
 }
 
 .menu-root {
-    width: 64px;
+    width: 96px;
     height: 100%;
     background-color: var(--dark);
 }
@@ -37,7 +37,7 @@
     position: absolute;
     top: 100%;
     left: 0;
-    min-width: 128px;
+    min-width: 192px;
 
     background-color: var(--dark);
 }

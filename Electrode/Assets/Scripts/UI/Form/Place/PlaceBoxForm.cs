@@ -1,4 +1,3 @@
-using Cascade.Select;
 using Cascade.UI.Form.Field;
 using Cascade.UI.Wireframe;
 using Unity.Mathematics;
@@ -13,14 +12,14 @@ namespace Cascade.UI.Form.Place
     public sealed class PlaceBoxForm : HintActionForm
     {
         private readonly Vector3FormField _origin;
-        private readonly Selection        _selection;
         private readonly UIntFormField    _seed;
         private readonly Vector3FormField _size;
 
-        public PlaceBoxForm(Selection selection, Hint hint) : base(
-            $"Place randomly in box ({selection.Count} selected)",
-            hint,
-            WireMesh.Cube)
+        public PlaceBoxForm(Sandbox sandbox, Hint hint) : base(sandbox,
+                                                               "Place randomly in box",
+                                                               true,
+                                                               hint,
+                                                               WireMesh.Cube)
         {
             _origin = Add(new Vector3FormField
             {
@@ -37,8 +36,6 @@ namespace Cascade.UI.Form.Place
             {
                 Label = "Seed"
             });
-
-            _selection = selection;
         }
 
         public override void Apply()
@@ -47,7 +44,7 @@ namespace Cascade.UI.Form.Place
             var origin = (float3)_origin.Value;
             var half   = (float3)_size.Value / 2f;
 
-            foreach (var n in _selection)
+            foreach (var n in Selection)
                 n.MoveTo(origin + rng.NextFloat3(-half, half));
         }
 

@@ -12,7 +12,8 @@ namespace Cascade.UI.Form
         private readonly Hint _hint;
         private readonly Mesh _shape;
 
-        protected HintActionForm(string title, Hint hint, Mesh shape) : base(title)
+        protected HintActionForm(Sandbox sandbox, string title, bool appendSelectionCount, Hint hint, Mesh shape) :
+            base(sandbox, title, appendSelectionCount)
         {
             _hint  = hint;
             _shape = shape;

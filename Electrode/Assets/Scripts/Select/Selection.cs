@@ -33,6 +33,7 @@ namespace Cascade.Select
         {
             _network               =  network;
             _network.NeuronRemoved += OnNeuronRemoved;
+            _network.Cleared       += Clear;
         }
 
         public int Count { get; private set; }
@@ -205,11 +206,9 @@ namespace Cascade.Select
         {
             if ((uint)id >= (uint)_network.Count)
             {
-                throw new ArgumentOutOfRangeException(
-                    nameof(id),
-                    id,
-                    $"Attempt to select nonexistent neuron at index {id} (count {_network.Count})"
-                );
+                throw new ArgumentOutOfRangeException(nameof(id),
+                                                      id,
+                                                      $"Attempt to select nonexistent neuron at index {id} (count {_network.Count})");
             }
 
             if (Contains(id))

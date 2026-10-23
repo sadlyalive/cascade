@@ -1,4 +1,3 @@
-using Cascade.Select;
 using Cascade.UI.Form.Field;
 using Cascade.UI.Wireframe;
 using Unity.Mathematics;
@@ -12,13 +11,13 @@ namespace Cascade.UI.Form.Place
     {
         private readonly Vector3FormField _origin;
         private readonly FloatFormField   _radius;
-        private readonly Selection        _selection;
         private readonly UIntFormField    _seed;
 
-        public PlaceSphereForm(Selection selection, Hint hint) : base(
-            $"Place randomly in sphere ({selection.Count} selected)",
-            hint,
-            WireMesh.Sphere)
+        public PlaceSphereForm(Sandbox sandbox, Hint hint) : base(sandbox,
+                                                                  "Place randomly in sphere",
+                                                                  true,
+                                                                  hint,
+                                                                  WireMesh.Sphere)
         {
             _origin = Add(new Vector3FormField
             {
@@ -35,8 +34,6 @@ namespace Cascade.UI.Form.Place
             {
                 Label = "Seed"
             });
-
-            _selection = selection;
         }
 
         public override void Apply()
@@ -47,7 +44,7 @@ namespace Cascade.UI.Form.Place
             var origin = (float3)_origin.Value;
             var radius = _radius.Value;
 
-            foreach (var n in _selection)
+            foreach (var n in Selection)
             {
                 // cube-rooting the random scalar compensates for r^3 volume growth
                 var p = origin + math.pow(rng.NextFloat(), third) * radius * rng.NextFloat3Direction();

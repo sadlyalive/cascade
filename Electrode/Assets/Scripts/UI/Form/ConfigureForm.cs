@@ -1,4 +1,3 @@
-using Cascade.Select;
 using Cascade.UI.Form.Field;
 using Unity.Mathematics;
 using UnityEngine;
@@ -15,15 +14,14 @@ namespace Cascade.UI.Form
         private readonly Vector3FormField _position;
         private readonly FloatFormField   _resetPotential;
         private readonly FloatFormField   _restPotential;
-        private readonly Selection        _selection;
         private readonly FloatFormField   _threshold;
 
         // selection's average position to offset each neuron in the entire selection
         private float3 _center;
 
-        public ConfigureForm(Selection selection) : base($"Configure ({selection.Count} selected)")
+        public ConfigureForm(Sandbox sandbox) : base(sandbox, "Configure", true)
         {
-            var count = selection.Count;
+            var count = Selection.Count;
 
             if (count == 0)
                 return;
@@ -33,14 +31,14 @@ namespace Cascade.UI.Form
             var leakShared   = true;
             var threshShared = true;
 
-            var first = selection[0];
+            var first = Selection[0];
 
             _center = first.GetPosition();
 
             // compare against first rather than previous to prevent Approximately() from allowing slight drifts
             for (var i = 1; i < count; i++)
             {
-                var n = selection[i];
+                var n = Selection[i];
 
                 restShared   &= Mathf.Approximately(first.RestPotential,  n.RestPotential);
                 resetShared  &= Mathf.Approximately(first.ResetPotential, n.ResetPotential);
@@ -82,8 +80,6 @@ namespace Cascade.UI.Form
                 Label = count > 1 ? "Center" : "Position",
                 Value = _center
             });
-
-            _selection = selection;
         }
 
         public override void OnChange()
@@ -94,7 +90,7 @@ namespace Cascade.UI.Form
 
             var offset = (float3)_position.Value - _center;
 
-            foreach (var n in _selection)
+            foreach (var n in Selection)
             {
                 if (_restPotential.Edited)
                     n.RestPotential = _restPotential.Value;

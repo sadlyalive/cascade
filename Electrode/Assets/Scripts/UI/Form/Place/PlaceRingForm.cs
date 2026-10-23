@@ -1,4 +1,3 @@
-using Cascade.Select;
 using Cascade.UI.Form.Field;
 using Cascade.UI.Wireframe;
 using Unity.Mathematics;
@@ -11,11 +10,9 @@ namespace Cascade.UI.Form.Place
     {
         private readonly Vector3FormField _origin;
         private readonly FloatFormField   _radius;
-        private readonly Selection        _selection;
 
-        public PlaceRingForm(Selection selection, Hint hint) : base($"Place in ring ({selection.Count} selected)",
-            hint,
-            WireMesh.Sphere)
+        public PlaceRingForm(Sandbox sandbox, Hint hint) : base(sandbox, "Place in ring", true, hint, WireMesh.Sphere)
+
         {
             _origin = Add(new Vector3FormField
             {
@@ -28,18 +25,16 @@ namespace Cascade.UI.Form.Place
                 Value    = 4f,
                 MinValue = 0f
             });
-
-            _selection = selection;
         }
 
         public override void Apply()
         {
             var origin = (float3)_origin.Value;
             var radius = _radius.Value;
-            var slice  = 2f * math.PI / _selection.Count;
+            var slice  = 2f * math.PI / Selection.Count;
 
-            for (var i = 0; i < _selection.Count; i++)
-                _selection[i].MoveTo(origin + radius * new float3(math.cos(i * slice), 0f, math.sin(i * slice)));
+            for (var i = 0; i < Selection.Count; i++)
+                Selection[i].MoveTo(origin + radius * new float3(math.cos(i * slice), 0f, math.sin(i * slice)));
         }
 
         protected override void Preview(Hint hint)

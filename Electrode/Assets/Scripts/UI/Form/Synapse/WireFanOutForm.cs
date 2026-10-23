@@ -5,10 +5,11 @@ namespace Cascade.UI.Form.Synapse
     /// <summary>Wires the first selected neuron into every other selected one (divergence).</summary>
     public sealed class WireFanOutForm : ActionForm
     {
-        private readonly Sandbox        _sandbox;
         private readonly FloatFormField _weight;
 
-        public WireFanOutForm(Sandbox sandbox) : base($"Wire fan out ({sandbox.Selection.Count} selected)")
+        private readonly Sandbox _sandbox;
+
+        public WireFanOutForm(Sandbox sandbox) : base(sandbox, "Wire fan out", true)
         {
             _sandbox = sandbox;
             _weight = Add(new FloatFormField

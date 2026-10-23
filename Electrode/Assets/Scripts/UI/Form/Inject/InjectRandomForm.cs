@@ -1,4 +1,3 @@
-using Cascade.Select;
 using Cascade.UI.Form.Field;
 using UnityEngine;
 
@@ -12,12 +11,10 @@ namespace Cascade.UI.Form.Inject
     {
         private readonly IntFormField   _count;
         private readonly FloatFormField _current;
-        private readonly Selection      _selection;
         private readonly UIntFormField  _seed;
 
-        public InjectRandomForm(Selection selection) : base($"Inject randomly ({selection.Count} selected)")
+        public InjectRandomForm(Sandbox sandbox) : base(sandbox, "Inject randomly", true)
         {
-            _selection = selection;
             _current = Add(new FloatFormField
             {
                 Label = "Current",
@@ -36,9 +33,9 @@ namespace Cascade.UI.Form.Inject
 
         public override void Apply()
         {
-            var rng       = NewRandom(_seed.Value);
-            var total     = _selection.Count;
-            var count     = Mathf.Clamp(_count.Value, 0, total);
+            var rng   = NewRandom(_seed.Value);
+            var total = Selection.Count;
+            var count = Mathf.Clamp(_count.Value, 0, total);
 
             // partial Fisher-Yates over selection positions; only shuffle as many slots as there are distinct picks
             var positions = new int[total];
@@ -53,7 +50,7 @@ namespace Cascade.UI.Form.Inject
             }
 
             for (var i = 0; i < count; i++)
-                _selection[positions[i]].InputCurrent = _current.Value;
+                Selection[positions[i]].InputCurrent = _current.Value;
         }
     }
 }

@@ -1,5 +1,4 @@
 using System;
-using Cascade.Select;
 using Cascade.UI.Form.Field;
 using Cascade.UI.Wireframe;
 using Unity.Mathematics;
@@ -16,12 +15,9 @@ namespace Cascade.UI.Form.Place
     public sealed class PlaceGridForm : HintActionForm
     {
         private readonly Vector3FormField _origin;
-        private readonly Selection        _selection;
         private readonly Vector3FormField _spacing;
 
-        public PlaceGridForm(Selection selection, Hint hint) : base($"Place in grid ({selection.Count} selected)",
-            hint,
-            WireMesh.Cube)
+        public PlaceGridForm(Sandbox sandbox, Hint hint) : base(sandbox, "Place in grid", true, hint, WireMesh.Cube)
         {
             _origin = Add(new Vector3FormField
             {
@@ -34,13 +30,11 @@ namespace Cascade.UI.Form.Place
                 Value    = Vector3.one,
                 MinValue = 0f
             });
-
-            _selection = selection;
         }
 
         public override void Apply()
         {
-            var count   = _selection.Count;
+            var count   = Selection.Count;
             var filled  = Filled(count, out var side);
             var spacing = (float3)_spacing.Value;
 
@@ -49,12 +43,12 @@ namespace Cascade.UI.Form.Place
             var corner = (float3)_origin.Value - (filled - 1) * 0.5f * spacing;
 
             for (var i = 0; i < count; i++)
-                _selection[i].MoveTo(corner + new float3(i % side, i / side % side, i / (side * side)) * spacing);
+                Selection[i].MoveTo(corner + new float3(i % side, i / side % side, i / (side * side)) * spacing);
         }
 
         protected override void Preview(Hint hint)
         {
-            var filled = Filled(_selection.Count, out _);
+            var filled = Filled(Selection.Count, out _);
 
             hint.Origin = _origin.Value;
             hint.Size   = math.max(filled - 1, 0) * _spacing.Value;
@@ -74,9 +68,9 @@ namespace Cascade.UI.Form.Place
             while (side * side * side < count)
                 side++;
 
-            return new float3(Math.Min(count,       side),
-                Math.Min((count + side - 1) / side, side),
-                (count + side * side - 1) / (side * side));
+            return new float3(Math.Min(count,                     side),
+                              Math.Min((count + side - 1) / side, side),
+                              (count + side * side - 1) / (side * side));
         }
     }
 }

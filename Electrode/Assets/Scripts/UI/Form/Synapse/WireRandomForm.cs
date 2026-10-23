@@ -18,10 +18,9 @@ namespace Cascade.UI.Form.Synapse
         private readonly FloatFormField _max;
         private readonly FloatFormField _min;
         private readonly FloatFormField _reach;
-        private readonly Sandbox        _sandbox;
         private readonly UIntFormField  _seed;
 
-        public WireRandomForm(Sandbox sandbox) : base($"Wire randomly ({sandbox.Selection.Count} selected)")
+        public WireRandomForm(Sandbox sandbox) : base(sandbox, "Wire randomly", true)
         {
             _degree = Add(new FloatFormField
             {
@@ -62,19 +61,11 @@ namespace Cascade.UI.Form.Synapse
                 if (_max.Value < _min.Value)
                     _min.Value = _max.Value;
             };
-
-            _sandbox = sandbox;
         }
 
         public override void Apply()
         {
-            Wire(_sandbox.Network,
-                _sandbox.Selection.Order,
-                _degree.Value,
-                _reach.Value,
-                _min.Value,
-                _max.Value,
-                _seed.Value);
+            Wire(Network, Selection.Order, _degree.Value, _reach.Value, _min.Value, _max.Value, _seed.Value);
         }
 
         /// <summary>
@@ -85,12 +76,13 @@ namespace Cascade.UI.Form.Synapse
         ///     </para>
         ///     <para>
         ///         With <paramref name="reach" /> &gt; 0, inputs only come from neurons closer than <paramref name="reach" />,
-        ///         and the chance falls linearly with distance (<c>1 - distance / reach</c>). A neuron with fewer candidates
-        ///         in reach than it drew gets them all, so isolated neurons get none.
+        ///         and the chance falls linearly with distance (<c>1 - distance / reach</c>). Neurons with fewer candidates
+        ///         in <paramref name="reach" /> may not be able to reach their target degree.
         ///     </para>
         ///     <para>
-        ///         Costs about O(synapses) without reach and O(neurons × candidates in reach) with it, instead of testing
-        ///         every pair: at 130k neurons that's the difference between ~500k draws and ~17 billion tests.
+        ///         Costs about O(synapses) without <paramref name="reach" /> and O(neurons × candidates in reach) with it.
+        ///         <paramref name="reach" /> can considerably lower iterations with spatial caching. At 130k neurons, that would
+        ///         be 130k² down to ~500k.
         ///     </para>
         ///     <para>Static so it can run (and be tested) without the UI.</para>
         /// </summary>
