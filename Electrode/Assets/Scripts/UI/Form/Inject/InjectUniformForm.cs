@@ -1,3 +1,4 @@
+using Cascade.Select;
 using Cascade.UI.Form.Field;
 
 namespace Cascade.UI.Form.Inject
@@ -8,17 +9,21 @@ namespace Cascade.UI.Form.Inject
     public sealed class InjectUniformForm : ActionForm
     {
         private readonly FloatFormField _current;
-        private readonly Sandbox        _sandbox;
+        private readonly Selection      _selection;
 
-        public InjectUniformForm(Sandbox sandbox) : base($"Inject uniformly ({sandbox.Selection.Count} selected)")
+        public InjectUniformForm(Selection selection) : base($"Inject uniformly ({selection.Count} selected)")
         {
-            _sandbox = sandbox;
-            _current = Add(new FloatFormField("Current", 3.5f));
+            _selection = selection;
+            _current = Add(new FloatFormField
+            {
+                Label = "Current",
+                Value = 3.5f
+            });
         }
 
         public override void Apply()
         {
-            foreach (var n in _sandbox.Selection)
+            foreach (var n in _selection)
                 n.InputCurrent = _current.Value;
         }
     }

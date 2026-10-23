@@ -1,3 +1,4 @@
+using Cascade.Select;
 using Cascade.UI.Form.Field;
 using Cascade.UI.Wireframe;
 using Unity.Mathematics;
@@ -10,31 +11,35 @@ namespace Cascade.UI.Form.Place
     {
         private readonly Vector3FormField _origin;
         private readonly FloatFormField   _radius;
-        private readonly Sandbox          _sandbox;
+        private readonly Selection        _selection;
 
-        public PlaceRingForm(Sandbox sandbox, Hint hint) : base(
-            $"Place in ring ({sandbox.Selection.Count} selected)",
+        public PlaceRingForm(Selection selection, Hint hint) : base($"Place in ring ({selection.Count} selected)",
             hint,
-            WireMesh.Sphere
-        )
+            WireMesh.Sphere)
         {
-            _sandbox = sandbox;
-            _origin  = Add(new Vector3FormField("Origin", Vector3.zero, float.NegativeInfinity));
-            _radius  = Add(new FloatFormField("Radius", 4f));
+            _origin = Add(new Vector3FormField
+            {
+                Label = "Origin",
+                Value = Vector3.zero
+            });
+            _radius = Add(new FloatFormField
+            {
+                Label    = "Radius",
+                Value    = 4f,
+                MinValue = 0f
+            });
+
+            _selection = selection;
         }
 
         public override void Apply()
         {
-            var selection = _sandbox.Selection;
-            var origin    = (float3)_origin.Value;
-            var radius    = _radius.Value;
-            var slice     = 2f * math.PI / selection.Count;
+            var origin = (float3)_origin.Value;
+            var radius = _radius.Value;
+            var slice  = 2f * math.PI / _selection.Count;
 
-            for (var i = 0; i < selection.Count; i++)
-            {
-                var pos = origin + radius * new float3(math.cos(i * slice), 0f, math.sin(i * slice));
-                selection[i].MoveTo(pos.x, pos.y, pos.z);
-            }
+            for (var i = 0; i < _selection.Count; i++)
+                _selection[i].MoveTo(origin + radius * new float3(math.cos(i * slice), 0f, math.sin(i * slice)));
         }
 
         protected override void Preview(Hint hint)

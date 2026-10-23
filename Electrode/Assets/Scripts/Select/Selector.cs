@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using Cascade.Render;
 using Cascade.UI;
 using JetBrains.Annotations;
 using Unity.Mathematics;

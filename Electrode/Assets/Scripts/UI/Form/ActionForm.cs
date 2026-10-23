@@ -29,7 +29,9 @@ namespace Cascade.UI.Form
         public IReadOnlyList<IFormField> Fields => _fields;
 
         /// <summary>Runs when the user clicks <c>Apply</c> on the form.</summary>
-        public abstract void Apply();
+        public virtual void Apply()
+        {
+        }
 
         /// <summary>Runs after form builds and becomes visible to the user.</summary>
         public virtual void OnShow()

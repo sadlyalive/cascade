@@ -1,8 +1,11 @@
 using System;
+using Cascade.Select;
 using Cascade.UI.Form.Field;
 using Cascade.UI.Wireframe;
 using Unity.Mathematics;
 using UnityEngine;
+
+// ReSharper disable PossibleLossOfFraction
 
 namespace Cascade.UI.Form.Place
 {
@@ -13,44 +16,45 @@ namespace Cascade.UI.Form.Place
     public sealed class PlaceGridForm : HintActionForm
     {
         private readonly Vector3FormField _origin;
-        private readonly Sandbox          _sandbox;
+        private readonly Selection        _selection;
         private readonly Vector3FormField _spacing;
 
-        public PlaceGridForm(Sandbox sandbox, Hint hint) : base(
-            $"Place in grid ({sandbox.Selection.Count} selected)",
+        public PlaceGridForm(Selection selection, Hint hint) : base($"Place in grid ({selection.Count} selected)",
             hint,
-            WireMesh.Cube
-        )
+            WireMesh.Cube)
         {
-            _sandbox = sandbox;
-            _origin  = Add(new Vector3FormField("Origin",  Vector3.zero, float.NegativeInfinity));
-            _spacing = Add(new Vector3FormField("Spacing", Vector3.one));
+            _origin = Add(new Vector3FormField
+            {
+                Label = "Origin",
+                Value = Vector3.zero
+            });
+            _spacing = Add(new Vector3FormField
+            {
+                Label    = "Spacing",
+                Value    = Vector3.one,
+                MinValue = 0f
+            });
+
+            _selection = selection;
         }
 
         public override void Apply()
         {
-            var selection = _sandbox.Selection;
-            var count     = selection.Count;
-            var filled    = Filled(count, out var side);
-            var spacing   = (float3)_spacing.Value;
+            var count   = _selection.Count;
+            var filled  = Filled(count, out var side);
+            var spacing = (float3)_spacing.Value;
 
-            // center what's actually filled, not the whole cube: 28 neurons on a 4-cube fill only 2 of its 4 layers, so
+            // center what's actually filled, not the whole cube. 28 neurons on a 4-cube fill only 2 of its 4 layers, so
             // a centered cube would leave them visibly off to one side. (n - 1) because n cells span n - 1 gaps
             var corner = (float3)_origin.Value - (filled - 1) * 0.5f * spacing;
 
             for (var i = 0; i < count; i++)
-            {
-                // integer division and modulo turn the index into digits in base `side`
-                var cell = new float3(i % side, i / side % side, i / (side * side));
-                var pos  = corner + cell * spacing;
-
-                selection[i].MoveTo(pos.x, pos.y, pos.z);
-            }
+                _selection[i].MoveTo(corner + new float3(i % side, i / side % side, i / (side * side)) * spacing);
         }
 
         protected override void Preview(Hint hint)
         {
-            var filled = Filled(_sandbox.Selection.Count, out _);
+            var filled = Filled(_selection.Count, out _);
 
             hint.Origin = _origin.Value;
             hint.Size   = math.max(filled - 1, 0) * _spacing.Value;
@@ -70,11 +74,9 @@ namespace Cascade.UI.Form.Place
             while (side * side * side < count)
                 side++;
 
-            return new float3(
-                Math.Min(count,                     side),
+            return new float3(Math.Min(count,       side),
                 Math.Min((count + side - 1) / side, side),
-                (count + side * side - 1) / (side * side)
-            );
+                (count + side * side - 1) / (side * side));
         }
     }
 }

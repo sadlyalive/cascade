@@ -1,3 +1,4 @@
+using Cascade.Select;
 using Cascade.UI.Form.Field;
 using Cascade.UI.Wireframe;
 using Unity.Mathematics;
@@ -12,20 +13,32 @@ namespace Cascade.UI.Form.Place
     public sealed class PlaceBoxForm : HintActionForm
     {
         private readonly Vector3FormField _origin;
-        private readonly Sandbox          _sandbox;
+        private readonly Selection        _selection;
         private readonly UIntFormField    _seed;
         private readonly Vector3FormField _size;
 
-        public PlaceBoxForm(Sandbox sandbox, Hint hint) : base(
-            $"Place randomly in box ({sandbox.Selection.Count} selected)",
+        public PlaceBoxForm(Selection selection, Hint hint) : base(
+            $"Place randomly in box ({selection.Count} selected)",
             hint,
-            WireMesh.Cube
-        )
+            WireMesh.Cube)
         {
-            _sandbox = sandbox;
-            _origin  = Add(new Vector3FormField("Origin", Vector3.zero, float.NegativeInfinity));
-            _size    = Add(new Vector3FormField("Size",   Vector3.one * 8f));
-            _seed    = Add(new UIntFormField("Seed"));
+            _origin = Add(new Vector3FormField
+            {
+                Label = "Origin",
+                Value = Vector3.zero
+            });
+            _size = Add(new Vector3FormField
+            {
+                Label    = "Size",
+                Value    = Vector3.one * 8f,
+                MinValue = 0f
+            });
+            _seed = Add(new UIntFormField
+            {
+                Label = "Seed"
+            });
+
+            _selection = selection;
         }
 
         public override void Apply()
@@ -34,11 +47,8 @@ namespace Cascade.UI.Form.Place
             var origin = (float3)_origin.Value;
             var half   = (float3)_size.Value / 2f;
 
-            foreach (var n in _sandbox.Selection)
-            {
-                var p = origin + rng.NextFloat3(-half, half);
-                n.MoveTo(p.x, p.y, p.z);
-            }
+            foreach (var n in _selection)
+                n.MoveTo(origin + rng.NextFloat3(-half, half));
         }
 
         protected override void Preview(Hint hint)

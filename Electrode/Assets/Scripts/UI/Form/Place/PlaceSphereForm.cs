@@ -1,3 +1,4 @@
+using Cascade.Select;
 using Cascade.UI.Form.Field;
 using Cascade.UI.Wireframe;
 using Unity.Mathematics;
@@ -11,19 +12,31 @@ namespace Cascade.UI.Form.Place
     {
         private readonly Vector3FormField _origin;
         private readonly FloatFormField   _radius;
-        private readonly Sandbox          _sandbox;
+        private readonly Selection        _selection;
         private readonly UIntFormField    _seed;
 
-        public PlaceSphereForm(Sandbox sandbox, Hint hint) : base(
-            $"Place randomly in sphere ({sandbox.Selection.Count} selected)",
+        public PlaceSphereForm(Selection selection, Hint hint) : base(
+            $"Place randomly in sphere ({selection.Count} selected)",
             hint,
-            WireMesh.Sphere
-        )
+            WireMesh.Sphere)
         {
-            _sandbox = sandbox;
-            _origin  = Add(new Vector3FormField("Origin", Vector3.zero, float.NegativeInfinity));
-            _radius  = Add(new FloatFormField("Radius", 8f));
-            _seed    = Add(new UIntFormField("Seed"));
+            _origin = Add(new Vector3FormField
+            {
+                Label = "Origin",
+                Value = Vector3.zero
+            });
+            _radius = Add(new FloatFormField
+            {
+                Label    = "Radius",
+                Value    = 8f,
+                MinValue = 0f
+            });
+            _seed = Add(new UIntFormField
+            {
+                Label = "Seed"
+            });
+
+            _selection = selection;
         }
 
         public override void Apply()
@@ -34,7 +47,7 @@ namespace Cascade.UI.Form.Place
             var origin = (float3)_origin.Value;
             var radius = _radius.Value;
 
-            foreach (var n in _sandbox.Selection)
+            foreach (var n in _selection)
             {
                 // cube-rooting the random scalar compensates for r^3 volume growth
                 var p = origin + math.pow(rng.NextFloat(), third) * radius * rng.NextFloat3Direction();
