@@ -53,8 +53,26 @@ public sealed class Network
     /// </summary>
     public event Action<int, int>? NeuronRemoved;
 
+    /// <summary>Raises after <see cref="Clear" /> for consumers who store neural indices.</summary>
+    public event Action? Cleared;
+
     /// <summary>
-    ///     Creates a standalone neuron with default parameters.
+    ///     Remove every neuron and synapse and rewinds <see cref="Time" /> to 0. This stays the same object (allocations
+    ///     included), so references to it and subscriptions on it stay valid.
+    /// </summary>
+    public void Clear()
+    {
+        Neurons.Clear();
+        Connectome.Clear();
+
+        _spikeCount = 0;
+        Time        = 0;
+
+        Cleared?.Invoke();
+    }
+
+    /// <summary>
+    ///     Create a standalone neuron with default parameters.
     /// </summary>
     /// <returns>The new <see cref="Neuron" /></returns>
     public Neuron AddNeuron()
@@ -73,7 +91,7 @@ public sealed class Network
     }
 
     /// <summary>
-    ///     Deletes the neuron at <paramref name="i" /> and every relevant synapse. Uses swap-remove, which may invalidate
+    ///     Delete the neuron at <paramref name="i" /> and every relevant synapse. Uses swap-remove, which may invalidate
     ///     external caching (see <see cref="NeuronRemoved" />).
     /// </summary>
     public void RemoveNeuron(int i)

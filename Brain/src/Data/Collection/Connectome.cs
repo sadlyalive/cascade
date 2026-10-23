@@ -44,7 +44,7 @@ public sealed class Connectome<T>
 
     /// <summary>
     ///     <para>
-    ///         Bakes pending synapse creations or removals into both internal directional matrices, which allows
+    ///         Bake pending synapse creations or removals into both internal directional matrices, which allows
     ///         <see cref="To" />/<see cref="From" /> to perceive them.
     ///     </para>
     /// </summary>
@@ -57,6 +57,15 @@ public sealed class Connectome<T>
             Version++;
 
         return success;
+    }
+
+    /// <summary>Remove all pending and committed synapses.</summary>
+    public void Clear()
+    {
+        _inbound.Clear();
+        _outbound.Clear();
+
+        Version++;
     }
 
     public RowSpan<T> To(int post)

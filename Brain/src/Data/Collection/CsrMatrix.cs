@@ -20,7 +20,7 @@ public class CsrMatrix<T>
     private T[]   _values;
 
     /// <summary>
-    ///     Creates an empty compressed sparse row matrix with preallocated <paramref name="rows" />.
+    ///     Create an empty compressed sparse row matrix with preallocated <paramref name="rows" />.
     /// </summary>
     public CsrMatrix(int rows)
     {
@@ -49,6 +49,17 @@ public class CsrMatrix<T>
         var j = FindInRow(row, col);
 
         return j < 0 ? default! : _values[j];
+    }
+
+    /// <summary>Remove all entries and pending writes. Row pointers remain allocated.</summary>
+    public void Clear()
+    {
+        Array.Clear(_rowPtr, 0, _rowPtr.Length);
+
+        _columns    = [];
+        _values     = [];
+        _pending    = new Dictionary<Cell, T>();
+        _lastCommit = 0;
     }
 
     public RowSpan<T> GetRow(int row)

@@ -100,6 +100,12 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
         return i;
     }
 
+    /// <summary>Remove every neuron in O(1) time with a simple counter reset. Arrays remain allocated.</summary>
+    internal void Clear()
+    {
+        Count = 0;
+    }
+
     /// <summary>
     ///     <para>Removes the neuron at <paramref name="i" /> by moving the last neuron into the removing slot.</para>
     ///     <para>

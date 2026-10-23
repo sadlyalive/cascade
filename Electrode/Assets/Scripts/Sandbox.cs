@@ -40,13 +40,13 @@ namespace Cascade
             Network   = new Network(0);
             Selection = new Selection(Network);
 
-            var diagnoser = Network.Diagnoser;
-            var trials    = diagnoser.TrialsPerDiagnosis;
-
-            diagnoser.OnFinish += (_, dt) =>
-            {
-                //Debug.Log($"{trials} trials of propagation: {dt} ms, avg {dt * 1000 / trials} µs");
-            };
+            // var diagnoser = Network.Diagnoser;
+            // var trials    = diagnoser.TrialsPerDiagnosis;
+            //
+            // diagnoser.OnFinish += (_, dt) =>
+            // {
+            //     Debug.Log($"{trials} trials of propagation: {dt} ms, avg {dt * 1000 / trials} µs");
+            // };
         }
 
         // accumulates steps in accordance with StepSize and actual time elapsed
