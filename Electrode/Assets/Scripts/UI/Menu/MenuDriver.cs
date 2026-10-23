@@ -1,10 +1,10 @@
 using Cascade.Render;
-using Cascade.Select;
 using Cascade.UI.Form.Driver;
 using Cascade.UI.Form.Inject;
 using Cascade.UI.Form.Place;
 using Cascade.UI.Form.Soma;
 using Cascade.UI.Form.Synapse;
+using Cascade.UI.Form.Workspace;
 using Cascade.UI.Menu.MenuNode;
 using Cascade.UI.Wireframe;
 using UnityEngine;
@@ -26,12 +26,10 @@ namespace Cascade.UI.Menu
 
         private VisualElement _container;
         private ActionDriver  _forms;
-        private Selection     _selection;
 
         protected override void OnEnabled()
         {
-            _forms     = GetComponent<ActionDriver>();
-            _selection = sandbox.Selection;
+            _forms = GetComponent<ActionDriver>();
 
             UI.BusyChanged += SetLock;
         }
@@ -50,23 +48,52 @@ namespace Cascade.UI.Menu
 
             // we could shorten this a bit by calling `Reveal` internally, but we lose some scalability unless we keep
             // the lambda constructor. also forms are not MonoBehaviors, so they can't fetch the driver alone
+            // IMPORTANT: all forms need sandbox directly since Selection could be stale on reset
             container.Add(MenuBuilder.Build(new MenuInner("Soma",
-                new MenuLeaf("Create", () => _forms.Reveal(new CreateForm(sandbox, hint, view))),
-                new MenuLeaf("Delete", () => _forms.Reveal(new DeleteForm(sandbox))))));
+                                                          new MenuLeaf("Create",
+                                                                       () => _forms.Reveal(
+                                                                           new CreateForm(sandbox, hint, view))),
+                                                          new MenuLeaf("Delete",
+                                                                       () => _forms.Reveal(new DeleteForm(sandbox))))));
             container.Add(MenuBuilder.Build(new MenuInner("Place",
-                new MenuInner("Random",
-                    new MenuLeaf("Sphere", () => _forms.Reveal(new PlaceSphereForm(_selection, hint))),
-                    new MenuLeaf("Box",    () => _forms.Reveal(new PlaceBoxForm(_selection, hint)))),
-                new MenuLeaf("Grid", () => _forms.Reveal(new PlaceGridForm(_selection, hint))),
-                new MenuLeaf("Ring", () => _forms.Reveal(new PlaceRingForm(_selection, hint))))));
-            container.Add(MenuBuilder.Build(new MenuInner("Wire",
-                new MenuLeaf("Random",  () => _forms.Reveal(new WireRandomForm(sandbox))),
-                new MenuLeaf("Chain",   () => _forms.Reveal(new WireChainForm(sandbox))),
-                new MenuLeaf("Fan in",  () => _forms.Reveal(new WireFanInForm(sandbox))),
-                new MenuLeaf("Fan out", () => _forms.Reveal(new WireFanOutForm(sandbox))))));
+                                                          new MenuInner("Random",
+                                                                        new MenuLeaf(
+                                                                            "Sphere",
+                                                                            () => _forms.Reveal(
+                                                                                new PlaceSphereForm(sandbox, hint))),
+                                                                        new MenuLeaf(
+                                                                            "Box",
+                                                                            () => _forms.Reveal(
+                                                                                new PlaceBoxForm(sandbox, hint)))),
+                                                          new MenuLeaf("Grid",
+                                                                       () => _forms.Reveal(
+                                                                           new PlaceGridForm(sandbox, hint))),
+                                                          new MenuLeaf("Ring",
+                                                                       () => _forms.Reveal(
+                                                                           new PlaceRingForm(sandbox, hint))))));
+            container.Add(MenuBuilder.Build(new MenuInner("Synapse",
+                                                          new MenuLeaf("Random",
+                                                                       () => _forms.Reveal(
+                                                                           new WireRandomForm(sandbox))),
+                                                          new MenuLeaf("Chain",
+                                                                       () => _forms.Reveal(new WireChainForm(sandbox))),
+                                                          new MenuLeaf("Fan in",
+                                                                       () => _forms.Reveal(new WireFanInForm(sandbox))),
+                                                          new MenuLeaf("Fan out",
+                                                                       () => _forms.Reveal(
+                                                                           new WireFanOutForm(sandbox))),
+                                                          new MenuLeaf("Sever",
+                                                                       () => _forms.Reveal(new SeverForm(sandbox))))));
             container.Add(MenuBuilder.Build(new MenuInner("Inject",
-                new MenuLeaf("Random",  () => _forms.Reveal(new InjectRandomForm(_selection))),
-                new MenuLeaf("Uniform", () => _forms.Reveal(new InjectUniformForm(_selection))))));
+                                                          new MenuLeaf("Random",
+                                                                       () => _forms.Reveal(
+                                                                           new InjectRandomForm(sandbox))),
+                                                          new MenuLeaf("Uniform",
+                                                                       () => _forms.Reveal(
+                                                                           new InjectUniformForm(sandbox))))));
+            container.Add(MenuBuilder.Build(new MenuInner("Network",
+                                                          new MenuLeaf("Reset",
+                                                                       () => _forms.Reveal(new ResetForm(sandbox))))));
 
             SetLock(UI.IsBusy);
         }
