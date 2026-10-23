@@ -20,4 +20,8 @@
         </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement name="drag-box" class="drag-box hidden" style="flex-grow: 1;"/>
+    <ui:VisualElement name="inspector" class="form-container">
+        <ui:Label name="title" class="form-title"/>
+        <ui:ScrollView name="fields"/>
+    </ui:VisualElement>
 </ui:UXML>
