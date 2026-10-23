@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Cascade
+namespace Cascade.Render
 {
     [NoReorder]
     public sealed class CameraDriver : MonoBehaviour

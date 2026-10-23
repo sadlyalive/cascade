@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace Cascade
+namespace Cascade.Render
 {
     /// <summary>
     ///     <para>
@@ -88,11 +88,9 @@ namespace Cascade
                 InstanceBuffer?.Dispose();
 
                 _data = new Soma[neurons.Capacity];
-                InstanceBuffer = new GraphicsBuffer(
-                    GraphicsBuffer.Target.Structured,
+                InstanceBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
                     neurons.Capacity,
-                    Marshal.SizeOf<Soma>()
-                );
+                    Marshal.SizeOf<Soma>());
             }
 
             var x         = neurons.X;
@@ -128,7 +126,8 @@ namespace Cascade
             var renderParams = new RenderParams(_material)
             {
                 // cull the whole draw only if this is off-screen entirely
-                worldBounds = new Bounds(transform.position, Vector3.one * 10000f), matProps = _properties
+                worldBounds = new Bounds(transform.position, Vector3.one * 10000f),
+                matProps    = _properties
             };
 
             // no mesh; shader turns vertices 0..5 of instance i into neuron i's quad

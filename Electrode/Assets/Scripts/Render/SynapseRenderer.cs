@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace Cascade
+namespace Cascade.Render
 {
     /// <summary>Which synapses <see cref="SynapseRenderer" /> draws.</summary>
     public enum SynapseFilter
@@ -130,11 +130,9 @@ namespace Cascade
                 if (_buffer is null || _buffer.count < _count)
                 {
                     _buffer?.Dispose();
-                    _buffer = new GraphicsBuffer(
-                        GraphicsBuffer.Target.Structured,
+                    _buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
                         _data.Length,
-                        Marshal.SizeOf<Synapse>()
-                    );
+                        Marshal.SizeOf<Synapse>());
                 }
 
                 _buffer.SetData(_data, 0, 0, _count);
@@ -166,7 +164,8 @@ namespace Cascade
 
             var renderParams = new RenderParams(_material)
             {
-                worldBounds = new Bounds(transform.position, Vector3.one * 10000f), matProps = _properties
+                worldBounds = new Bounds(transform.position, Vector3.one * 10000f),
+                matProps    = _properties
             };
 
             Graphics.RenderPrimitives(renderParams, MeshTopology.Triangles, VerticesPerSynapse, _count);
@@ -203,7 +202,12 @@ namespace Cascade
                     if (n == _data.Length)
                         Array.Resize(ref _data, n * 2);
 
-                    _data[n++] = new Synapse { Pre = pre, Post = columns[i], Weight = values[i] };
+                    _data[n++] = new Synapse
+                    {
+                        Pre    = pre,
+                        Post   = columns[i],
+                        Weight = values[i]
+                    };
                 }
             }
 
