@@ -4,15 +4,13 @@ using UnityEngine.UIElements;
 
 namespace Cascade.UI
 {
-    [RequireComponent(typeof(UIDriver))]
-    public class TimeWidget : MonoBehaviour
+    public class TimeWidget : UIListener
     {
         [SerializeField] private float   minSpeed = 0.001f;
         [SerializeField] private float   maxSpeed = 10f;
         [SerializeField] private Sandbox sandbox;
 
-        private float    _sliderRange;
-        private UIDriver _ui;
+        private float _sliderRange;
 
         public float MinSpeed
         {
@@ -40,23 +38,12 @@ namespace Cascade.UI
             MaxSpeed = maxSpeed;
         }
 
-        private void OnEnable()
+        protected override void OnEnabled()
         {
             _sliderRange = Mathf.Log(maxSpeed / minSpeed);
-
-            _ui          =  GetComponent<UIDriver>();
-            _ui.Reloaded += Latch;
-
-            if (_ui.Root != null)
-                Latch(_ui.Root);
         }
 
-        private void OnDisable()
-        {
-            _ui.Reloaded -= Latch;
-        }
-
-        private void Latch(VisualElement root)
+        protected override void OnUIReload(VisualElement root)
         {
             var menu = root.Q(className: "time-menu");
 
@@ -65,21 +52,20 @@ namespace Cascade.UI
 
             field.RegisterValueChangedCallback(args => Apply(args.newValue));
             slider.RegisterValueChangedCallback(args =>
+            {
+                const int digits = 3;
+
+                var v = args.newValue;
+
+                if (v > 0f)
                 {
-                    const int digits = 3;
-
-                    var v = args.newValue;
-
-                    if (v > 0f)
-                    {
-                        v = MinSpeed * Mathf.Exp(v * _sliderRange);
-                        var scale = Math.Pow(10, digits - 1 - Math.Floor(Math.Log10(v))); // sig fig scale
-                        v = (float)(Math.Round(v * scale) / scale);                       // apply round
-                    }
-
-                    Apply(v);
+                    v = MinSpeed * Mathf.Exp(v * _sliderRange);
+                    var scale = Math.Pow(10, digits - 1 - Math.Floor(Math.Log10(v))); // sig fig scale
+                    v = (float)(Math.Round(v * scale) / scale);                       // apply round
                 }
-            );
+
+                Apply(v);
+            });
 
             Apply(sandbox.TimeScale);
             return;

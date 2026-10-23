@@ -4,29 +4,11 @@ using UnityEngine.UIElements;
 
 namespace Cascade.UI
 {
-    [RequireComponent(typeof(UIDriver))]
-    public class HintToggleWidget : MonoBehaviour
+    public class HintToggleWidget : UIListener
     {
-        [SerializeField]
-        private Hint hint;
+        [SerializeField] private Hint hint;
 
-        private UIDriver _ui;
-
-        private void OnEnable()
-        {
-            _ui          =  GetComponent<UIDriver>();
-            _ui.Reloaded += Latch;
-
-            if (_ui.Root != null)
-                Latch(_ui.Root);
-        }
-
-        private void OnDisable()
-        {
-            _ui.Reloaded -= Latch;
-        }
-
-        private void Latch(VisualElement root)
+        protected override void OnUIReload(VisualElement root)
         {
             var toggle = root.Q<Toggle>("hint-toggle");
 
