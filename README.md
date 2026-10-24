@@ -86,3 +86,6 @@ Simply unzip the file into a folder and run `Cascade.exe`.
     - Uniform: Inject `Current` into all selected neurons
   - Network
     - Reset: Purge all neurons and reset the simulation's elapsed time
+
+### License
+Electrode is under MIT but uses [Montserrat](Electrode/Assets/UI/Fonts/Montserrat-OFL.txt) and [DM Mono](Electrode/Assets/UI/Fonts/DMMono-OFL.txt) which are fonts that Google licenses under the SIL Open Font License 1.1.
