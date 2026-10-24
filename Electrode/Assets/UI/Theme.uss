@@ -1,6 +1,6 @@
 :root {
     color: var(--bright);
-    -unity-font-definition: url("project://database/Assets/UI/Fonts/Montserrat-Regular.ttf");
+    -unity-font-definition: url("project://database/Assets/UI/Fonts/Montserrat-Regular SDF.asset");
 }
 
 .unity-label {
@@ -103,7 +103,7 @@
     padding: 4px var(--row-pad);
     flex-direction: column-reverse;
 
-    -unity-font-definition: url("project://database/Assets/UI/Fonts/DMMono-Light.ttf");
+    -unity-font-definition: url("project://database/Assets/UI/Fonts/DMMono-Light SDF.asset");
     font-size: 12px;
 }
 

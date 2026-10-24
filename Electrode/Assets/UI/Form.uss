@@ -21,7 +21,7 @@
 }
 
 .form-title {
-    -unity-font-style: bold;
+    -unity-font-definition: url("project://database/Assets/UI/Fonts/Montserrat-Bold SDF.asset");
 }
 
 .form-actions {
