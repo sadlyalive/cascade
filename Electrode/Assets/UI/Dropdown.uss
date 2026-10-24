@@ -37,7 +37,7 @@
     position: absolute;
     top: 100%;
     left: 0;
-    min-width: 192px;
+    min-width: 96px;
 
     background-color: var(--dark);
 }
