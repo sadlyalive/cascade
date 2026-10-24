@@ -1,10 +1,14 @@
-# Cascade
+# Cascade <img width="64" height="64" alt="cascade" src="https://github.com/user-attachments/assets/34e93b18-2094-424b-a969-8b63371db7a5" />
 
 Cascade consists of two components: [Brain](https://github.com/sadlyalive/brain#brain) and [Electrode](#electrode). This README concerns mostly Electrode, a lightweight interface for Brain, since [Brain has its own repository](https://github.com/sadlyalive/brain#brain) as a standalone library.
 
 ## Electrode
+<p align="center">
+  <img width="256" height="256" alt="preview" src="https://github.com/user-attachments/assets/cc1fab68-3950-4055-8fae-9f21cbcb6b0f" />
+</p>
 
 Electrode is a very simple editor made with Unity that allows users to freely manipulate neurons and observe interneural interactions within a sandbox from almost any computer. Its versatile yet very digestible set of features with hardly any learning curve or setup:
+
 <img width="1133" height="27" alt="image" src="https://github.com/user-attachments/assets/e3c807b1-43a8-4813-bddd-2f5478991050" />
 
  At the moment, Brain's internal calculations are inaccurate in comparison to other neural solvers in interest of portability, performance, and quantity over quality, so the library is more useful as a consumer-grade educational tool rather than a research supplement.
@@ -15,29 +19,29 @@ Electrode releases will typically include builds for [Linux](#linux), [macOS](#m
 
 #### Linux
 1. Extract the tar file:
-```sh
+```bash
 tar -xzf cascade*.tar.gz 
 ```
 
 2. Run the executable:
-```sh
+```bash
 ./Cascade/cascade.x86_64
 ```
 **Note:** you might have to allow execution before running:
-```sh
+```bash
 chmod +x Cascade/cascade.x86_64
 ```
 
 #### macOS
 With Apple's notarization, macOS systems will very likely reject open-source apps. Unzip the file and either right-click and open or run:
-```sh
+```bash
 xattr -dr com.apple.quarantine mac.app
 ```
 
 #### Windows
 Simply unzip the file into a folder and run `Cascade.exe`.
 
-### Recent Features (v1.0)
+### Recent Features ((v1.0-alpha.1)[https://github.com/sadlyalive/cascade/releases/tag/v1.0-alpha.1])
 - Navigation
   - Camera behavior takes a lot of inspiration from Blender and similar modelling suites:
     - Hold and drag `MMB`: orbit
