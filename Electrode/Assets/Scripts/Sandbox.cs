@@ -10,6 +10,9 @@ namespace Cascade
     ///     <see cref="StepSize" />, as many per frame as <see cref="TimeScale" /> asks for. Edits to the network live in the
     ///     forms that perform them (see Cascade.UI.Form).
     /// </summary>
+    // some UI components depend on sandbox properties on enable, but unity does not guarantee sandbox's Awake calls
+    // before the 'ui' game object's OnEnable
+    [DefaultExecutionOrder(-100)]
     public sealed class Sandbox : MonoBehaviour
     {
         /// <summary>

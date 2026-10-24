@@ -45,16 +45,15 @@ namespace Cascade.UI.Form.Driver
             if (mouse == null || !mouse.leftButton.wasPressedThisFrame)
                 return;
 
-            var hoverUI = UI.CursorPick;
-
-            if (hoverUI == null || !IsInFormUI(hoverUI))
+            if (!IsInFormUI(UI.CursorPick))
                 Hide();
 
             return;
 
             bool IsInFormUI(VisualElement element)
             {
-                return element == Shell || Shell.Contains(element);
+                // unity places dropdowns in a sibling of the UI root
+                return element == Shell || Shell.Contains(element) || UIDriver.IsInDropdown(element);
             }
         }
 

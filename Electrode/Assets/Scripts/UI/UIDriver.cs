@@ -112,7 +112,10 @@ namespace Cascade.UI
             var hover = panel.Pick(RuntimePanelUtils.ScreenToPanel(panel, screen));
 
             // exclude the top-level UI root which could be pickable since it's fullscreen despite being invisible
-            return _cursorPick = hover != null && hover != Root && Root.Contains(hover) ? hover : null;
+            if (hover == null || hover == Root)
+                return _cursorPick = null;
+
+            return _cursorPick = Root.Contains(hover) || IsInDropdown(hover) ? hover : null;
         }
 
         // fires every UI rebuild
@@ -125,6 +128,18 @@ namespace Cascade.UI
             Root     = root;
 
             Reloaded?.Invoke(root);
+        }
+
+        /// <returns>Whether <paramref name="element" /> belongs to a dropdown's popup</returns>
+        public static bool IsInDropdown(VisualElement element)
+        {
+            for (var e = element; e != null; e = e.hierarchy.parent)
+            {
+                if (e.ClassListContains("unity-base-dropdown"))
+                    return true;
+            }
+
+            return false;
         }
 
         private sealed class BusyToken : IDisposable
