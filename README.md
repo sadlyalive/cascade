@@ -1,21 +1,21 @@
 # Cascade <img width="64" height="64" alt="cascade" src="https://github.com/user-attachments/assets/34e93b18-2094-424b-a969-8b63371db7a5" />
 
-Cascade consists of two components: [Brain](https://github.com/sadlyalive/brain#brain) and [Electrode](#electrode). This README concerns mostly Electrode, a lightweight interface for Brain, since [Brain has its own repository](https://github.com/sadlyalive/brain#brain) as a standalone library.
+Cascade consists of two components: [Brain](https://github.com/sadlyalive/brain#brain) and [Electrode](#electrode). This README mostly concerns Electrode, a lightweight interface for Brain, since [Brain has its own repository](https://github.com/sadlyalive/brain#brain) as a standalone library.
 
 ## Electrode
 <p align="center">
   <img width="256" height="256" alt="preview" src="https://github.com/user-attachments/assets/cc1fab68-3950-4055-8fae-9f21cbcb6b0f" />
 </p>
 
-Electrode is a very simple editor made with Unity that allows users to freely manipulate neurons and observe interneural interactions within a sandbox from almost any computer. Its set of features is versatile yet very digestible with hardly any learning curve or setup:
+Electrode is a very simple editor made with Unity that allows users to freely manipulate neurons and observe interneuronal interactions within a sandbox from almost any computer. Its set of features is versatile yet very digestible with hardly any learning curve or setup:
 
 <img width="1133" height="27" alt="image" src="https://github.com/user-attachments/assets/e3c807b1-43a8-4813-bddd-2f5478991050" />
 
- At the moment, Brain's internal calculations are inaccurate compared to other neural solvers out of interest for portability, performance, and quantity over quality, so the library is more useful as a consumer-grade educational tool and less practical in research.
+At the moment, Brain's internal calculations are inaccurate compared to other neural solvers in favor of portability and scale over precision, so the library is more useful as a consumer-grade educational tool and less practical in research.
 
 ### Installation
 
-Electrode releases will typically include builds for [Linux](#linux), [macOS](#macos), and [Windows](#windows). You can find latest releases [here](https://github.com/sadlyalive/cascade/releases).
+Electrode releases will typically include builds for [Linux](#linux), [macOS](#macos), and [Windows](#windows). You can find the latest releases [here](https://github.com/sadlyalive/cascade/releases).
 
 #### Linux
 1. Extract the tar file:
@@ -33,7 +33,7 @@ chmod +x Cascade/cascade.x86_64
 ```
 
 #### macOS
-With Apple's notarization, macOS systems will very likely reject open-source apps. Unzip the file and either right-click and open or run:
+Without Apple's notarization, macOS systems will very likely reject open-source apps. Unzip the file and either right-click and open or run:
 ```bash
 xattr -dr com.apple.quarantine mac.app
 ```
@@ -41,14 +41,14 @@ xattr -dr com.apple.quarantine mac.app
 #### Windows
 Simply unzip the file into a folder and run `Cascade.exe`.
 
-### Recent Features ((v1.0-alpha.1)[https://github.com/sadlyalive/cascade/releases/tag/v1.0-alpha.1])
+### Recent Features ([v1.0-alpha.1][https://github.com/sadlyalive/cascade/releases/tag/v1.0-alpha.1])
 - Navigation
   - Camera behavior takes a lot of inspiration from Blender and similar modelling suites:
     - Hold and drag `MMB`: orbit
     - Hold and drag `Shift + MMB`: pan
     - `Scroll up/down`: zoom in/out respectively
   - Topbar
-    - `speed` input and accompanying logarithmic slider can deterministically slow/accelerate the simulation
+    - `Speed` input and accompanying logarithmic slider can deterministically slow/accelerate the simulation
       - **!! HIGH SPEEDS CAN HURT PERFORMANCE DEPENDING ON HOW LARGE YOUR SIMULATION IS !!** 
     - `Draw gizmos` checkbox can disable hint meshes (i.e., command previews and the axes guides)
     - `Draw synapses` dropdown can selectively render connections based on view distance, activity, or selection
@@ -57,13 +57,14 @@ Simply unzip the file into a folder and run `Cascade.exe`.
   - `Ctrl + LMB`: select neuron (inclusive)
   - Hold and drag `LMB`: select neurons in box (exclusive)
   - Hold and drag `Ctrl + LMB`: select neurons in box (inclusive)
-  - Hover over current selection and `Ctrl + Scroll up/down`: recursively select postsynaptic neurons (inclusive)
+  - `Ctrl + Scroll up/down`: recursively trace/backpedal outbound connections to postsynaptic neurons based on current selection (inclusive)
+  - `Ctrl + Shift + Scroll up/down`: recursively trace/backpedal inbound connections to presynaptic neurons based on current selection (inclusive)
   - Change selected neurons' properties in bulk with the panel that appears automatically when your selection changes (changes apply instantly) 
 - Commands
   - Soma
     - Create: Add `Count` new neurons at `Position`. Position is your camera's current target by default
     - Delete: Delete selected neurons
-      - **!! VERY UNPERFORMANT RIGHT NOW !! SEE NETWORK MENU FOR FULL-CLEAR ALTERNATIVE **
+      - **!! VERY UNPERFORMANT RIGHT NOW !! SEE NETWORK MENU FOR FULL-CLEAR ALTERNATIVE**
   - Place
     - Random
       - Sphere: Pseudorandomly place selected neurons within a sphere of radius `Radius` at `Origin` (accepts a `Seed` for randomness, leave at `0` for clock-dependent seed)
@@ -81,7 +82,7 @@ Simply unzip the file into a folder and run `Cascade.exe`.
       - `Inbound`: only synapses that innervate at least one selected neuron
       - `Outbound`: only synapses that project from at least one selected neuron
   - Inject
-    - Random: Inject `Current` (mV) into `Neurons` pseudorandom neurons (accepts a `Seed`)
+    - Random: Inject `Current` (mV/ms) into `Neurons` pseudorandomly chosen neurons within your current selection (accepts a `Seed`)
     - Uniform: Inject `Current` into all selected neurons
   - Network
     - Reset: Purge all neurons and reset the simulation's elapsed time
