@@ -4,7 +4,7 @@ namespace Cascade.UI.Form.Soma
 {
     public sealed class DeleteForm : ActionForm
     {
-        public DeleteForm(Sandbox sandbox) : base(sandbox, "Delete somas", true)
+        public DeleteForm(Sandbox sandbox) : base(sandbox, "Delete somas")
         {
         }
 

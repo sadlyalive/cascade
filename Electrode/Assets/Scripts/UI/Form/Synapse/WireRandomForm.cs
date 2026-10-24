@@ -20,7 +20,7 @@ namespace Cascade.UI.Form.Synapse
         private readonly FloatFormField _reach;
         private readonly UIntFormField  _seed;
 
-        public WireRandomForm(Sandbox sandbox) : base(sandbox, "Wire randomly", true)
+        public WireRandomForm(Sandbox sandbox) : base(sandbox, "Wire randomly")
         {
             _degree = Add(new FloatFormField
             {

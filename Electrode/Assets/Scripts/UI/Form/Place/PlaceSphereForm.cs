@@ -15,7 +15,6 @@ namespace Cascade.UI.Form.Place
 
         public PlaceSphereForm(Sandbox sandbox, Hint hint) : base(sandbox,
                                                                   "Place randomly in sphere",
-                                                                  true,
                                                                   hint,
                                                                   WireMesh.Sphere)
         {

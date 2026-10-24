@@ -17,7 +17,7 @@ namespace Cascade.UI.Form.Place
         private readonly Vector3FormField _origin;
         private readonly Vector3FormField _spacing;
 
-        public PlaceGridForm(Sandbox sandbox, Hint hint) : base(sandbox, "Place in grid", true, hint, WireMesh.Cube)
+        public PlaceGridForm(Sandbox sandbox, Hint hint) : base(sandbox, "Place in grid", hint, WireMesh.Cube)
         {
             _origin = Add(new Vector3FormField
             {

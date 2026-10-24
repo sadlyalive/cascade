@@ -15,11 +15,7 @@ namespace Cascade.UI.Form.Place
         private readonly UIntFormField    _seed;
         private readonly Vector3FormField _size;
 
-        public PlaceBoxForm(Sandbox sandbox, Hint hint) : base(sandbox,
-                                                               "Place randomly in box",
-                                                               true,
-                                                               hint,
-                                                               WireMesh.Cube)
+        public PlaceBoxForm(Sandbox sandbox, Hint hint) : base(sandbox, "Place randomly in box", hint, WireMesh.Cube)
         {
             _origin = Add(new Vector3FormField
             {

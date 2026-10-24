@@ -13,7 +13,7 @@ namespace Cascade.UI.Form.Inject
         private readonly FloatFormField _current;
         private readonly UIntFormField  _seed;
 
-        public InjectRandomForm(Sandbox sandbox) : base(sandbox, "Inject randomly", true)
+        public InjectRandomForm(Sandbox sandbox) : base(sandbox, "Inject randomly")
         {
             _current = Add(new FloatFormField
             {

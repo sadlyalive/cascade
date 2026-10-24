@@ -7,7 +7,7 @@ namespace Cascade.UI.Form.Synapse
     {
         private readonly FloatFormField _weight;
 
-        public WireFanInForm(Sandbox sandbox) : base(sandbox, "Wire fan in", true)
+        public WireFanInForm(Sandbox sandbox) : base(sandbox, "Wire fan in")
         {
             _weight = Add(new FloatFormField
             {

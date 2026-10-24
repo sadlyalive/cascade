@@ -17,7 +17,6 @@ namespace Cascade.UI.Form.Soma
 
         public CreateForm(Sandbox sandbox, Hint hint, CameraDriver view) : base(sandbox,
             "Create neurons",
-            true,
             hint,
             WireMesh.Sphere)
         {
@@ -39,8 +38,17 @@ namespace Cascade.UI.Form.Soma
             var pos   = (float3)_position.Value;
             var count = _count.Value;
 
+            var @new = new int[count];
+
             for (var i = 0; i < count; i++)
-                Network.AddNeuron().MoveTo(pos);
+            {
+                var n = Network.AddNeuron();
+
+                @new[i] = n;
+                n.MoveTo(pos);
+            }
+
+            Selection.Set(@new);
         }
 
         protected override void Preview(Hint hint)

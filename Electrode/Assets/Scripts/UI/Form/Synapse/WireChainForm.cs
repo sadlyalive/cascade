@@ -10,7 +10,7 @@ namespace Cascade.UI.Form.Synapse
         private readonly ToggleFormField _closed;
         private readonly FloatFormField  _weight;
 
-        public WireChainForm(Sandbox sandbox) : base(sandbox, "Wire chain", true)
+        public WireChainForm(Sandbox sandbox) : base(sandbox, "Wire chain")
         {
             // threshold sits 15 mV above rest by default, so 16 fires a resting neuron from a single spike
             _weight = Add(new FloatFormField

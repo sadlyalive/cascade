@@ -9,7 +9,7 @@ namespace Cascade.UI.Form.Synapse
 
         private readonly Sandbox _sandbox;
 
-        public WireFanOutForm(Sandbox sandbox) : base(sandbox, "Wire fan out", true)
+        public WireFanOutForm(Sandbox sandbox) : base(sandbox, "Wire fan out")
         {
             _sandbox = sandbox;
             _weight = Add(new FloatFormField

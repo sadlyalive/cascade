@@ -19,7 +19,7 @@ namespace Cascade.UI.Form
         // selection's average position to offset each neuron in the entire selection
         private float3 _center;
 
-        public ConfigureForm(Sandbox sandbox) : base(sandbox, "Configure", true)
+        public ConfigureForm(Sandbox sandbox) : base(sandbox, "Configure")
         {
             var count = Selection.Count;
 

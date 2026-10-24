@@ -11,7 +11,7 @@ namespace Cascade.UI.Form.Place
         private readonly Vector3FormField _origin;
         private readonly FloatFormField   _radius;
 
-        public PlaceRingForm(Sandbox sandbox, Hint hint) : base(sandbox, "Place in ring", true, hint, WireMesh.Sphere)
+        public PlaceRingForm(Sandbox sandbox, Hint hint) : base(sandbox, "Place in ring", hint, WireMesh.Sphere)
 
         {
             _origin = Add(new Vector3FormField

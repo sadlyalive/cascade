@@ -9,7 +9,7 @@ namespace Cascade.UI.Form.Inject
     {
         private readonly FloatFormField _current;
 
-        public InjectUniformForm(Sandbox sandbox) : base(sandbox, "Inject uniformly", true)
+        public InjectUniformForm(Sandbox sandbox) : base(sandbox, "Inject uniformly")
         {
             _current = Add(new FloatFormField
             {

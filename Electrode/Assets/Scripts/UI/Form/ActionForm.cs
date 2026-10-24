@@ -23,14 +23,10 @@ namespace Cascade.UI.Form
     {
         private readonly List<IFormField> _fields = new();
 
-        protected ActionForm(Sandbox sandbox, string title, bool appendSelectionCount = false)
+        protected ActionForm(Sandbox sandbox, string title)
         {
             Sandbox = sandbox;
-
-            if (appendSelectionCount)
-                title += $" ({Selection.Count} selected)";
-
-            Title = title;
+            Title   = title;
         }
 
         // convenience getters since most forms need some component of sandbox

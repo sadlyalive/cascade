@@ -2,58 +2,52 @@ using Cascade.UI.Form.Field;
 
 namespace Cascade.UI.Form.Synapse
 {
+    public enum SeverMode
+    {
+        All,
+        Selection,
+        Inbound,
+        Outbound
+    }
+
     public class SeverForm : ActionForm
     {
-        private readonly ToggleFormField _within;
-        private readonly ToggleFormField _inbound;
-        private readonly ToggleFormField _outbound;
+        private readonly EnumFormField<SeverMode> _mode;
 
-        public SeverForm(Sandbox sandbox) : base(sandbox, "Sever synapses", true)
+        public SeverForm(Sandbox sandbox) : base(sandbox, "Sever synapses")
         {
-            _within = new ToggleFormField
+            _mode = Add(new EnumFormField<SeverMode>
             {
-                Label = "Synapses within selection only"
-            };
-            _inbound = new ToggleFormField
-            {
-                Label = "Include inbound synapses",
-                Value = true
-            };
-            _outbound = new ToggleFormField
-            {
-                Label = "Include outbound synapses",
-                Value = true
-            };
+                Label = "Mode",
+                Value = SeverMode.All
+            });
         }
 
         public override void Apply()
         {
+            var scope = _mode.Choice;
+
             foreach (var i in Selection.Order)
             {
-                if (_inbound.Value)
+                // skip the first pass for selection-only severs since a second pass would be redundant
+                // (all internal synapses are both inbound and outbound)
+
+                // inbound / all pass
+                if (scope is SeverMode.Inbound or SeverMode.All)
                 {
                     foreach (var (pre, _) in Connectome.To(i))
-                    {
-                        if (IsRelevant(pre))
-                            Connectome[pre, i] = 0f;
-                    }
+                        Connectome[pre, i] = 0f;
                 }
 
-                if (!_outbound.Value)
+                if (scope is SeverMode.Inbound)
                     continue;
 
+                // outbound / selection-only pass
                 foreach (var (post, _) in Connectome.From(i))
                 {
-                    if (IsRelevant(post))
+                    if (scope is not SeverMode.Selection || Selection.Contains(post))
                         Connectome[i, post] = 0f;
                 }
-            }
-
-            return;
-
-            bool IsRelevant(int i)
-            {
-                return !_within.Value || Selection.Contains(i);
             }
         }
     }
