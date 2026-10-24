@@ -37,8 +37,6 @@ namespace Cascade.Render
     [DefaultExecutionOrder(1)] // LateUpdate after SomaRenderer's, so its buffer is this frame's and won't be replaced
     public sealed class SynapseRenderer : MonoBehaviour
     {
-        private const string ShaderPath = "Custom/Synapse";
-
         private const float Far                = 10000f;
         private const int   VerticesPerSynapse = 9; // shaft quad (6) + head triangle (3)
 
@@ -58,6 +56,8 @@ namespace Cascade.Render
         private static readonly int GlowTimeId       = Shader.PropertyToID("glow_time");
         private static readonly int SelectionOnlyId  = Shader.PropertyToID("selection_only");
 
+        [SerializeField] private Shader shader;
+
         [Header("Shape")]
         [SerializeField] private float widthPerWeight = 0.003f;
         [SerializeField] private float minWidth = 0.003f;
@@ -72,7 +72,7 @@ namespace Cascade.Render
         [SerializeField] private Color restColor = new(0.6f, 0.65f, 0.8f, 0.35f);
         [SerializeField] private Color activeColor = new(1f, 0.9f, 0.1f, 0.9f);
 
-        [Header("Distance fade (relative to camera)")]
+        [Header("Distance fade")]
         [SerializeField] private float fadeStart = 8f;
         [SerializeField] private float fadeEnd = 16f;
 
@@ -100,17 +100,7 @@ namespace Cascade.Render
             _sandbox    = GetComponent<Sandbox>();
             _somas      = GetComponent<SomaRenderer>();
             _properties = new MaterialPropertyBlock();
-
-            var shader = Shader.Find(ShaderPath);
-
-            if (shader == null)
-            {
-                Debug.LogError($"Shader \"{ShaderPath}\" not found");
-                enabled = false;
-                return;
-            }
-
-            _material = new Material(shader);
+            _material   = new Material(shader);
         }
 
         private void LateUpdate()
@@ -130,9 +120,11 @@ namespace Cascade.Render
                 if (_buffer is null || _buffer.count < _count)
                 {
                     _buffer?.Dispose();
-                    _buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                                                 _data.Length,
-                                                 Marshal.SizeOf<Synapse>());
+                    _buffer = new GraphicsBuffer(
+                        GraphicsBuffer.Target.Structured,
+                        _data.Length,
+                        Marshal.SizeOf<Synapse>()
+                    );
                 }
 
                 _buffer.SetData(_data, 0, 0, _count);

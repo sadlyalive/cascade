@@ -13,10 +13,8 @@ namespace Cascade.UI.Wireframe
     [NoReorder]
     public sealed class Hint : MonoBehaviour
     {
-        private const string ShaderPath = "Custom/Wire";
-
-        [SerializeField]
-        private float axisLength = 4f;
+        [SerializeField] private Shader shader;
+        [SerializeField] private float  axisLength = 4f;
 
         private Matrix4x4    _axisMatrix;
         private Material     _material;
@@ -62,19 +60,12 @@ namespace Cascade.UI.Wireframe
 
         private void Awake()
         {
-            var shader = Shader.Find(ShaderPath);
-
-            if (!shader)
-            {
-                Debug.LogError($"Shader \"{ShaderPath}\" not found");
-                enabled = false;
-                return;
-            }
-
-            _material     = new Material(shader);
-            _renderParams = new RenderParams(_material) { worldBounds = new Bounds(Vector3.zero, Vector3.one * 8092f) };
-
+            _material   = new Material(shader);
             _axisMatrix = Matrix4x4.Scale(Vector3.one * axisLength);
+            _renderParams = new RenderParams(_material)
+            {
+                worldBounds = new Bounds(Vector3.zero, Vector3.one * 8092f)
+            };
         }
 
         private void LateUpdate()

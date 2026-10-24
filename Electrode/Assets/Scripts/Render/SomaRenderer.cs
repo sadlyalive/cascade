@@ -14,17 +14,17 @@ namespace Cascade.Render
     [RequireComponent(typeof(Sandbox))]
     public sealed class SomaRenderer : MonoBehaviour
     {
-        private const string ShaderPath = "Custom/Soma";
-
         private const int VerticesPerSoma = 6; // one quad, two triangles
 
         private static readonly int NeuronBufferId = Shader.PropertyToID("neuron_buffer");
         private static readonly int NeuronScaleId  = Shader.PropertyToID("neuron_scale");
         private static readonly int GlowTimeId     = Shader.PropertyToID("glow_time");
 
+        [SerializeField] private Shader shader;
+
         [SerializeField] private float neuronScale = 0.08f;
 
-        [Tooltip("Real seconds a spike's glow takes to fade to ~37%, whatever the time scale")]
+        // seconds for a spike to fade to about ~37% alpha
         [SerializeField] private float glowSeconds = 0.15f;
 
         private Soma[]                _data;
@@ -58,17 +58,7 @@ namespace Cascade.Render
         {
             _sandbox    = GetComponent<Sandbox>();
             _properties = new MaterialPropertyBlock();
-
-            var shader = Shader.Find(ShaderPath);
-
-            if (shader == null)
-            {
-                Debug.LogError($"Shader \"{ShaderPath}\" not found");
-                enabled = false;
-                return;
-            }
-
-            _material = new Material(shader);
+            _material   = new Material(shader);
         }
 
         // LateUpdate guarantees sandbox already stepped this frame
@@ -88,9 +78,11 @@ namespace Cascade.Render
                 InstanceBuffer?.Dispose();
 
                 _data = new Soma[neurons.Capacity];
-                InstanceBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
+                InstanceBuffer = new GraphicsBuffer(
+                    GraphicsBuffer.Target.Structured,
                     neurons.Capacity,
-                    Marshal.SizeOf<Soma>());
+                    Marshal.SizeOf<Soma>()
+                );
             }
 
             var x         = neurons.X;

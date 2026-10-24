@@ -570,6 +570,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 638b133262919c54982bf1b94deda59d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NeuronRenderer
+  shader: {fileID: 4800000, guid: 4ec7c05c4bec87448bb0645ac9916348, type: 3}
   neuronScale: 0.08
   glowSeconds: 0.15
 --- !u!114 &1365696033
@@ -612,6 +613,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1bd4e01775a2c7744967c47b4c50abfe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Cascade::Cascade.BoundsPreview
+  shader: {fileID: 4800000, guid: 99a9f7a71219599448a898d43a0587aa, type: 3}
   axisLength: 4
 --- !u!114 &1365696036
 MonoBehaviour:
@@ -625,6 +627,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a2eb96ee3cee5a44be9e84cee5b4319, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Cascade::Cascade.SynapseRenderer
+  shader: {fileID: 4800000, guid: b44b7989a8511044ca1dbe1ac06b50b7, type: 3}
   widthPerWeight: 0.003
   minWidth: 0.003
   maxWidth: 0.03
