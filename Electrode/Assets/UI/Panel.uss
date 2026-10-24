@@ -1,0 +1,27 @@
+:root {
+    --row-pad: 8px;
+    --dark: rgb(42, 42, 48);
+    --bg: rgb(64, 64, 88);
+    --bg-bright: rgb(80, 80, 104);
+    --bg-highlight: rgb(96, 96, 128);
+    --bright: rgb(240, 240, 240);
+}
+
+/* get rid of the annoying horizontal scroll for all enum dropdowns */
+.unity-base-dropdown .unity-scroll-view__horizontal-scroller {
+    display: none;
+}
+
+.unity-base-dropdown__container-outer,
+.unity-base-dropdown__container-inner {
+    background-color: var(--bright);
+}
+
+.unity-base-dropdown__label {
+    color: var(--dark);
+}
+
+.unity-base-dropdown__item {
+    margin: 0;
+    padding: 0;
+}

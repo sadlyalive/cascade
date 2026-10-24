@@ -3,6 +3,7 @@
     <Style src="project://database/Assets/UI/TimeMenu.uss?fileID=7433441132597879392&amp;guid=a32c9df64167e1e4299448a722db5f37&amp;type=3#TimeMenu"/>
     <Style src="project://database/Assets/UI/Dropdown.uss?fileID=7433441132597879392&amp;guid=1b2ff852748f18343a7dc9a39c28aff4&amp;type=3#Dropdown"/>
     <Style src="project://database/Assets/UI/Form.uss?fileID=7433441132597879392&amp;guid=3f08afcc5b0d48ddac5f215775231ec6&amp;type=3#Form"/>
+    <Style src="project://database/Assets/UI/Panel.uss?fileID=7433441132597879392&amp;guid=a100a71efcb8ec7458245b7a6bfb7dc4&amp;type=3#Panel"/>
     <ui:VisualElement name="topbar" class="topbar">
         <ui:VisualElement name="time-menu" class="time-menu row-spacer">
             <ui:FloatField name="time-scale-field" label="Speed" value="1" max-length="16" class="row-spacer"/>
@@ -10,7 +11,8 @@
         </ui:VisualElement>
         <ui:VisualElement name="menus" class="menu-container row-spacer"/>
         <ui:Toggle label="Draw gizmos" name="hint-toggle" value="true" class="row-spacer singleton"/>
-        <ui:DropdownField label="Draw synapses" name="synapse-mode" class="singleton"/>
+        <ui:EnumField label="Draw synapses" value="All" type="Cascade.Render.SynapseFilter, Cascade" name="synapse-mode"
+                      class="singleton"/>
     </ui:VisualElement>
     <ui:VisualElement name="form" class="form-container">
         <ui:Label name="title" class="form-title"/>
@@ -23,5 +25,9 @@
     <ui:VisualElement name="inspector" class="form-container">
         <ui:Label name="title" class="form-title"/>
         <ui:ScrollView name="fields"/>
+    </ui:VisualElement>
+    <ui:VisualElement name="status-bar" class="status-bar" picking-mode="Ignore">
+        <ui:Label name="status-time" picking-mode="Ignore"/>
+        <ui:Label name="status-selection" picking-mode="Ignore"/>
     </ui:VisualElement>
 </ui:UXML>

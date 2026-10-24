@@ -136,6 +136,7 @@ GameObject:
   - component: {fileID: 252257377}
   - component: {fileID: 252257379}
   - component: {fileID: 252257378}
+  - component: {fileID: 252257380}
   m_Layer: 0
   m_Name: ui
   m_TagString: Untagged
@@ -310,6 +311,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc4b3b07e3784570b2ec62dd65bc5e4e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Cascade::Cascade.UI.Form.Driver.ActionDriver
+--- !u!114 &252257380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 252257368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb6347e8a7f5ee341b3a3fcc16464853, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Cascade::Cascade.UI.StatusBar
+  sandbox: {fileID: 1365696033}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
