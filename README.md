@@ -79,8 +79,8 @@ Simply unzip the file into a folder and run `Cascade.exe`.
     - Sever: Prune selected neurons' synapses according to `Mode`
       - `All`: all synapses that the selected neurons touch
       - `Selection`: only synapses completely within the selection (both neurons selected)
-      - `Inbound`: only synapses that innervate at least one selected neuron
-      - `Outbound`: only synapses that project from at least one selected neuron
+      - `Inbound`: only synapses that innervate any selected neuron
+      - `Outbound`: only synapses that project from any selected neuron
   - Inject
     - Random: Inject `Current` (mV/ms) into `Neurons` pseudorandomly chosen neurons within your current selection (accepts a `Seed`)
     - Uniform: Inject `Current` into all selected neurons
