@@ -41,7 +41,7 @@ xattr -dr com.apple.quarantine mac.app
 #### Windows
 Simply unzip the file into a folder and run `Cascade.exe`.
 
-### Recent Features ([v1.0-alpha.1][https://github.com/sadlyalive/cascade/releases/tag/v1.0-alpha.1])
+### Recent Features ([v1.0-alpha.1](https://github.com/sadlyalive/cascade/releases/tag/v1.0-alpha.1))
 - Navigation
   - Camera behavior takes a lot of inspiration from Blender and similar modelling suites:
     - Hold and drag `MMB`: orbit
