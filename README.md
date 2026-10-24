@@ -7,11 +7,11 @@ Cascade consists of two components: [Brain](https://github.com/sadlyalive/brain#
   <img width="256" height="256" alt="preview" src="https://github.com/user-attachments/assets/cc1fab68-3950-4055-8fae-9f21cbcb6b0f" />
 </p>
 
-Electrode is a very simple editor made with Unity that allows users to freely manipulate neurons and observe interneural interactions within a sandbox from almost any computer. Its versatile yet very digestible set of features with hardly any learning curve or setup:
+Electrode is a very simple editor made with Unity that allows users to freely manipulate neurons and observe interneural interactions within a sandbox from almost any computer. Its set of features is versatile yet very digestible with hardly any learning curve or setup:
 
 <img width="1133" height="27" alt="image" src="https://github.com/user-attachments/assets/e3c807b1-43a8-4813-bddd-2f5478991050" />
 
- At the moment, Brain's internal calculations are inaccurate in comparison to other neural solvers in interest of portability, performance, and quantity over quality, so the library is more useful as a consumer-grade educational tool rather than a research supplement.
+ At the moment, Brain's internal calculations are inaccurate compared to other neural solvers out of interest for portability, performance, and quantity over quality, so the library is more useful as a consumer-grade educational tool and less practical in research.
 
 ### Installation
 
