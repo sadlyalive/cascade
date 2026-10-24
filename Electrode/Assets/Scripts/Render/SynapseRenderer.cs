@@ -29,8 +29,8 @@ namespace Cascade.Render
     ///         soma with thickness proportional to weight in a single draw via <see cref="Graphics.RenderPrimitives" />.
     ///     </para>
     ///     <para>
-    ///         Uploads only <c>int pre, int post, float weight</c> to the GPU per synapse. Soma positions come from
-    ///         <see cref="SomaRenderer" />'s buffer.
+    ///         Uploads only <c>int pre, int post, float weight, float reciprocal</c> to the GPU per synapse. Soma positions
+    ///         come from <see cref="SomaRenderer" />'s buffer.
     ///     </para>
     /// </summary>
     [RequireComponent(typeof(SomaRenderer))]
@@ -131,8 +131,8 @@ namespace Cascade.Render
                 {
                     _buffer?.Dispose();
                     _buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                        _data.Length,
-                        Marshal.SizeOf<Synapse>());
+                                                 _data.Length,
+                                                 Marshal.SizeOf<Synapse>());
                 }
 
                 _buffer.SetData(_data, 0, 0, _count);
@@ -189,24 +189,29 @@ namespace Cascade.Render
 
             for (var pre = 0; pre < neurons; pre++)
             {
-                var row     = connectome.From(pre);
-                var columns = row.Columns;
-                var values  = row.Values;
+                // who synapses back onto pre. both rows sort by column, so one walk through them side by side
+                // finds every reciprocal partner in O(in + out) without a lookup per synapse
+                var inbound = connectome.To(pre).Columns;
+                var back    = 0;
 
-                for (var i = 0; i < row.Count; i++)
+                foreach (var (post, weight) in connectome.From(pre))
                 {
                     // a synapse to an index past neuron count would read a stale soma slot on the GPU
-                    if (columns[i] >= neurons)
+                    if (post >= neurons)
                         continue;
+
+                    while (back < inbound.Length && inbound[back] < post)
+                        back++;
 
                     if (n == _data.Length)
                         Array.Resize(ref _data, n * 2);
 
                     _data[n++] = new Synapse
                     {
-                        Pre    = pre,
-                        Post   = columns[i],
-                        Weight = values[i]
+                        Pre        = pre,
+                        Post       = post,
+                        Weight     = weight,
+                        Reciprocal = back < inbound.Length && inbound[back] == post ? 1f : 0f
                     };
                 }
             }
@@ -221,6 +226,7 @@ namespace Cascade.Render
             public int   Pre;
             public int   Post;
             public float Weight;
+            public float Reciprocal;
         }
     }
 }

@@ -45,6 +45,7 @@ Shader "Custom/Synapse"
                 int pre;
                 int post;
                 float weight;
+                float reciprocal; // 1 if post also synapses back onto pre, else 0
             };
 
             StructuredBuffer<neuron_instance> neuron_buffer;
@@ -56,7 +57,7 @@ Shader "Custom/Synapse"
             float max_width;
             float head_length;
             float head_width_scale;
-            float side_offset;
+            float side_offset; // gap between the two arrows of a reciprocal pair
             float fade_start; // distance from the camera where synapses start fading out
             float fade_end; // distance from the camera where they're gone
             float glow_time; // same as Soma.shader's, so a synapse fades with its source neuron
@@ -105,8 +106,8 @@ Shader "Custom/Synapse"
 
                 // the width axis is perpendicular to both the synapse and the line of sight, so the arrow always shows
                 // its flat side. it collapses only when you look straight down the synapse, where it'd be edge-on anyway
-                float3 toCamera = normalize(_WorldSpaceCameraPos - (start + end) * 0.5);
-                float3 side = cross(dir, toCamera);
+                float3 to_camera = normalize(_WorldSpaceCameraPos - (start + end) * 0.5);
+                float3 side = cross(dir, to_camera);
                 side *= rsqrt(max(dot(side, side), 1e-12));
 
                 float3 position_ws;
@@ -122,9 +123,10 @@ Shader "Custom/Synapse"
                     position_ws = lerp(shaft_end, end, c.x) + side * (c.y * head_half_width);
                 }
 
-                // every arrow sits slightly to its own right. a reciprocal pair points opposite ways, so `side` flips and
-                // the two land on opposite sides automatically: no need to find reciprocal pairs at all
-                position_ws += side * side_offset;
+                // only reciprocal pairs split apart, each arrow to its own right. the two point opposite ways, so `side`
+                // flips and they land on opposite sides. half_width + half the gap puts their inner edges exactly
+                // side_offset apart at any weight. lone synapses stay centered on the line between their somas
+                position_ws += side * (synapse.reciprocal * (half_width + side_offset * 0.5));
 
                 // fade per VERTEX, not per synapse, so a long synapse running away from the camera fades gradually
                 // along its length (like fog) instead of popping in or out as one piece
