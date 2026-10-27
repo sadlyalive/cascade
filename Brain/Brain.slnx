@@ -1,3 +1,4 @@
 <Solution>
-  <Project Path="Brain.csproj" />
+  <Project Path="src/Brain.csproj" />
+  <Project Path="benchmark/Benchmark.csproj" />
 </Solution>

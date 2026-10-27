@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- bottlenecked by unity monobehavior -->
+    <!-- TODO: bottlenecked by unity monobehavior, update on CoreCLR -->
     <TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks>
     <!-- ImplicitUsings generates a file inside obj/ that unity never sees
          which could create dependency mismatches -->
@@ -12,7 +12,7 @@
 
   <Target Name="CopyToUnity" AfterTargets="Build" Condition="'$(TargetFramework)' == 'netstandard2.1'">
     <Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb"
-          DestinationFolder="$(MSBuildProjectDirectory)\..\Electrode\Assets\Plugins\Brain" />
+          DestinationFolder="$(MSBuildProjectDirectory)\..\..\Electrode\Assets\Plugins\Brain" />
   </Target>
 
 </Project>
