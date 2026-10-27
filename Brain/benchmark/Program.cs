@@ -133,11 +133,11 @@ internal static class Program
             PrintRow(scenario, result, spread, actualSynapses, baselineMs[scenario.Neurons]);
         }
 
-        Console.WriteLine();
-        Console.WriteLine("* real time  simulated ms per wall-clock ms, i.e., the fastest TimeScale that keeps up");
-        Console.WriteLine("M updates/s  neural integrations per second (spikeless baselines)");
-        Console.WriteLine("M events/s   spikes per synapse per second (time beyond baselines)");
-        Console.WriteLine("spread       ± half the range between the fastest and slowest trial");
+        Console.WriteLine(Green);
+        Console.WriteLine("vs. real time    simulated ms per wall-clock ms, i.e., the fastest TimeScale that keeps up");
+        Console.WriteLine("M updates/s      neural integrations per second (spikeless baselines)");
+        Console.WriteLine("M events/s       spikes per synapse per second (time beyond baselines)");
+        Console.WriteLine($"spread          ± half the range between the fastest and slowest trial{Reset}");
 
         return 0;
     }
@@ -179,9 +179,9 @@ internal static class Program
     private static void PrintHeader(double seconds, int trials, int seed, int? cpu)
     {
         Console.WriteLine(
-            $"{Green}Brain benchmark: one thread, 1 ms steps, median of {trials} x {seconds} s trials, seed {seed}{Reset}"
+            $"{Green}Brain benchmark: one thread, 1 ms steps, median of {trials} x {seconds} s trials, seed {seed}{Gray}"
         );
-        Console.WriteLine($"{Gray}CPU       {Machine.CpuName()}{(cpu is { } i ? $" (pinned to logical CPU {i})" : "")}");
+        Console.WriteLine($"CPU       {Machine.CpuName()}{(cpu is { } i ? $" (pinned to logical CPU {i})" : "")}");
         Console.WriteLine($"Runtime   {RuntimeInformation.FrameworkDescription} {RuntimeInformation.ProcessArchitecture}");
         Console.WriteLine($"OS        {RuntimeInformation.OSDescription}{Reset}");
 #if DEBUG
@@ -196,7 +196,7 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine(
             $"{Green}  neurons     synapses    rate(Hz)   events/step" +
-            $"    ms/step   * real time   M updates/s   M events/s     spread{Reset}"
+            $"    ms/step  vs. real time   M updates/s   M events/s     spread{Reset}"
         );
         Console.Write(Reset);
     }
@@ -216,7 +216,7 @@ internal static class Program
 
         Console.WriteLine(
             $"{scenario.Neurons,9:N0}   {synapses,10:N0}    {rateHz,8:F1}   {result.EventsPerStep,11:N0}  " +
-            $"{result.MsPerStep,9:F4}   {1 / result.MsPerStep,10:F1}x   {updates}   {events}    {spread * 100,6:±0.0}%"
+            $"{result.MsPerStep,9:F4}    {1 / result.MsPerStep,10:F1}x   {updates}   {events}    {spread * 100,6:±0.0}%"
         );
     }
 

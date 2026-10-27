@@ -20,8 +20,9 @@ internal readonly record struct Scenario(int Neurons, long Synapses, double Rate
     // nonzero so every spike still walks its whole row (writing 0 would delete the synapse), but far too small to ever
     // push an undriven neuron to threshold. the measurement counts real spikes either way, so this only keeps the
     // advertised rate honest
-    private const          float    Weight   = 1e-4f;
-    public static readonly TimeSpan StepSize = TimeSpan.FromMilliseconds(1);
+    private const float Weight = 1e-4f;
+
+    private static readonly TimeSpan StepSize = TimeSpan.FromMilliseconds(1);
 
     /// <summary>No synapses and no input, so nothing ever spikes and a step costs pure integration.</summary>
     public bool IsBaseline => Synapses == 0 && RateHz == 0;
@@ -91,12 +92,17 @@ internal readonly record struct Scenario(int Neurons, long Synapses, double Rate
             steps++;
             events += pendingEvents;
 
-            var (newSpikes, newEvents) =  CountSpikes(network, fanOut);
-            spikes                     += newSpikes;
-            pendingEvents              =  newEvents;
+            var (newSpikes, newEvents) = CountSpikes(network, fanOut);
+
+            spikes        += newSpikes;
+            pendingEvents =  newEvents;
         }
 
-        return new Measurement(stopwatch.Elapsed.TotalMilliseconds / steps, (double)spikes / steps, (double)events / steps);
+        return new Measurement(
+            stopwatch.Elapsed.TotalMilliseconds / steps,
+            (double)spikes / steps,
+            (double)events / steps
+        );
     }
 
     private static (long spikes, long events) CountSpikes(Network network, int[] fanOut)
@@ -122,5 +128,5 @@ internal readonly record struct Scenario(int Neurons, long Synapses, double Rate
 }
 
 /// <summary>Per-step averages from one timed run.</summary>
-/// <param name="EventsPerStep">Synaptic events (one spike reaching one target) delivered per step</param>
+/// <param name="EventsPerStep">Synaptic events (a spike propagating to one target) delivered per step</param>
 internal readonly record struct Measurement(double MsPerStep, double SpikesPerStep, double EventsPerStep);
