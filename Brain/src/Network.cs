@@ -9,13 +9,14 @@ public sealed class Network
     // per-step buffer for total synaptic current arriving at each postsynaptic neuron
     private float[] _current;
 
-    //indices of spiking neurons from the last step. propagation walks this instead of checking every neuron spike which
+    // indices of spiking neurons from the last step. propagation walks this instead of checking every neuron spike
+    // which
     // would be O(n)
     private int[] _spikes;
     private int   _spikeCount;
 
-    /// <summary>Creates a network of <paramref name="capacity" /> unconnected neurons with default parameters.</summary>
-    public Network(int capacity)
+    /// <summary>Creates a network with preallocation for <paramref name="capacity" /> neurons.</summary>
+    public Network(int capacity = 0)
     {
         Neurons    = new NeuronPool(capacity);
         Connectome = new Connectome<float>(capacity);
@@ -44,17 +45,18 @@ public sealed class Network
     /// <summary>Simulated time elapsed (ms)</summary>
     public double Time { get; private set; }
 
-    public Diagnoser Diagnoser { get; } = new(1024);
+    public Diagnoser? IntegrationDiagnoser { get; set; }
+    public Diagnoser? SpikeDiagnoser       { get; set; }
 
     /// <summary>
     ///     Raises when <see cref="RemoveNeuron(int)" /> calls and passes <c>(removed, moved)</c>. This is for consumers who
     ///     store neural indices that risk staleness due to the remove-swap. <c>moved</c> assumes <c>removed</c>'s position.
     ///     <c> moved = -1</c> implies the last neuron was removed.
     /// </summary>
-    public event Action<int, int>? NeuronRemoved;
+    public event Action<Network, SwapRemove>? NeuronRemoved;
 
     /// <summary>Raises after <see cref="Clear" /> for consumers who store neural indices.</summary>
-    public event Action? Cleared;
+    public event Action<Network>? Cleared;
 
     /// <summary>
     ///     Remove every neuron and synapse and rewinds <see cref="Time" /> to 0. This stays the same object (allocations
@@ -68,7 +70,7 @@ public sealed class Network
         _spikeCount = 0;
         Time        = 0;
 
-        Cleared?.Invoke();
+        Cleared?.Invoke(this);
     }
 
     /// <summary>
@@ -121,21 +123,21 @@ public sealed class Network
         Connectome.CommitChanges();
 
         // swap-remove
-        var oldIndex = Neurons.RemoveAt(i);
+        var oldI = Neurons.RemoveAt(i);
 
         // move all synapses at the last index to the remover's now-vacant index
-        if (oldIndex >= 0)
+        if (oldI >= 0)
         {
-            foreach (var (pre, weight) in Connectome.To(oldIndex))
+            foreach (var (pre, weight) in Connectome.To(oldI))
             {
-                Connectome[pre, i]        = weight;
-                Connectome[pre, oldIndex] = 0f;
+                Connectome[pre, i]    = weight;
+                Connectome[pre, oldI] = 0f;
             }
 
-            foreach (var (post, weight) in Connectome.From(oldIndex))
+            foreach (var (post, weight) in Connectome.From(oldI))
             {
-                Connectome[i, post]        = weight;
-                Connectome[oldIndex, post] = 0f;
+                Connectome[i, post]    = weight;
+                Connectome[oldI, post] = 0f;
             }
 
             Connectome.CommitChanges();
@@ -145,11 +147,11 @@ public sealed class Network
         {
             if (_spikes[j] == i)
                 _spikes[j] = _spikes[--_spikeCount]; // swap-remove the dead neuron's spike if present
-            else if (_spikes[j] == oldIndex)
+            else if (_spikes[j] == oldI)
                 _spikes[j] = i; // update the moving neuron's index in the spike list
         }
 
-        NeuronRemoved?.Invoke(i, oldIndex);
+        NeuronRemoved?.Invoke(this, new SwapRemove(i, oldI));
     }
 
     /// <summary>
@@ -166,7 +168,10 @@ public sealed class Network
         // TODO: change to single-arg Array.Clear(arr) on unity 6.8 CoreCLR
         Array.Clear(_current, 0, _current.Length);
 
-        Diagnoser.Start();
+        SpikeDiagnoser?.Start();
+
+        // synaptic events delivered this step so the hot loop doesn't repeatedly probe its diagnoser
+        var events = 0u;
 
         // gather synaptic current from last step
         // walks only outbound rows in contrast to every (pre, post) pair for 2D arrays
@@ -178,9 +183,11 @@ public sealed class Network
 
             for (var j = 0; j < row.Count; j++)
                 _current[row.Columns[j]] += row.Values[j];
+
+            events += (uint)row.Count;
         }
 
-        Diagnoser.Stop();
+        SpikeDiagnoser?.Stop(events);
 
         // store spans in variables to avoid creating a new one per property access
         var inputCurrent = Neurons.InputCurrent;
@@ -198,6 +205,8 @@ public sealed class Network
 
         // discard spikes in last step and begin recording new spikes
         _spikeCount = 0;
+
+        IntegrationDiagnoser?.Start();
 
         // integrate, leak, and check voltage threshold
         for (var i = 0; i < Count; i++)
@@ -220,5 +229,13 @@ public sealed class Network
 
             _spikes[_spikeCount++] = i;
         }
+
+        IntegrationDiagnoser?.Stop((uint)Count);
     }
+}
+
+// in Network.cs because this is mostly for consumers; NeuronPool's swap logic is internal
+public readonly record struct SwapRemove(int Remover, int Successor)
+{
+    public bool IsSwap => Remover != Successor;
 }

@@ -51,17 +51,6 @@ public class CsrMatrix<T>
         return j < 0 ? default! : _values[j];
     }
 
-    /// <summary>Remove all entries and pending writes. Row pointers remain allocated.</summary>
-    public void Clear()
-    {
-        Array.Clear(_rowPtr, 0, _rowPtr.Length);
-
-        _columns    = [];
-        _values     = [];
-        _pending    = new Dictionary<Cell, T>();
-        _lastCommit = 0;
-    }
-
     public RowSpan<T> GetRow(int row)
     {
         // treat nonexistent rows as empty rather than tossing an out of range exception (same as Get())
@@ -129,6 +118,18 @@ public class CsrMatrix<T>
         // new rows are always empty, so they all start and end where the last existing row ended
         for (var i = oldLength; i < _rowPtr.Length; i++)
             _rowPtr[i] = end;
+    }
+
+    /// <summary>Remove all entries and pending writes. Row pointers remain allocated.</summary>
+    public void Clear()
+    {
+        // TODO: single-argument call in unity 6.8 CoreCLR
+        Array.Clear(_rowPtr, 0, _rowPtr.Length);
+
+        _columns    = [];
+        _values     = [];
+        _pending    = new Dictionary<Cell, T>();
+        _lastCommit = 0;
     }
 
     /// <summary>

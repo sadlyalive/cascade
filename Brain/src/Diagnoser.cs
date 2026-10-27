@@ -3,35 +3,37 @@ using System.Diagnostics;
 
 namespace Brain;
 
-public class Diagnoser(int trials)
+public class Diagnoser(TimeSpan interval)
 {
     private readonly Stopwatch _stopwatch = new();
+    private          TimeSpan  _dt;
+    private          ulong     _trials;
 
-    private int  _trial;
-    private long _dt;
-    public  int  TrialsPerDiagnosis { get; } = trials;
+    // EventHandler<TSender, TEventArgs> only exists in .NET 10, so netstandard2.1 (unity's build) can't see it
+    public event Action<Diagnoser, DiagnoserReport>? IntervalElapsed;
 
-    public event EventHandler<decimal>? OnFinish;
-
-    // [Conditional] deletes every call to these (arguments included) from any build that doesn't define DEBUG
-    // release builds exclude these methods automatically
-    [Conditional("DEBUG")]
     public void Start()
     {
         _stopwatch.Start();
     }
 
-    [Conditional("DEBUG")]
-    public void Stop()
+    public void Stop(uint trials = 0)
     {
-        _dt += _stopwatch.ElapsedTicks;
+        _dt     += _stopwatch.Elapsed;
+        _trials += trials;
         _stopwatch.Reset();
 
-        if (++_trial < TrialsPerDiagnosis)
+        if (_dt < interval || _trials < 1)
             return;
 
-        OnFinish?.Invoke(this, (decimal)_dt * 1000 / Stopwatch.Frequency);
-        _trial = 0;
-        _dt    = 0;
+        IntervalElapsed?.Invoke(this, new DiagnoserReport(_dt, _trials));
+
+        _dt     = TimeSpan.Zero;
+        _trials = 0;
     }
+}
+
+public readonly record struct DiagnoserReport(TimeSpan DeltaTime, ulong Trials)
+{
+    public TimeSpan TimePerTrial => DeltaTime / Trials;
 }

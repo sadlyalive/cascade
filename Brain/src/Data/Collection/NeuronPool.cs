@@ -26,10 +26,6 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
         Reallocate(Math.Max(capacity, 1));
     }
 
-    internal NeuronPool() : this(16)
-    {
-    }
-
     /// <summary>External current injection per step (mV/ms)</summary>
     public Span<float> InputCurrent => _inputCurrent.AsSpan(0, Count);
 
@@ -110,7 +106,7 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
     ///     <para>Removes the neuron at <paramref name="i" /> by moving the last neuron into the removing slot.</para>
     ///     <para>
     ///         Much better than shifting since shifted indices would become stale in other places (most notably the
-    ///         connectome). Caller must still tidy the connectome for the former last neuron's new index (see
+    ///         connectome). The caller must still tidy the connectome for the former last neuron's new index (see
     ///         <see cref="Network" />).
     ///     </para>
     /// </summary>
