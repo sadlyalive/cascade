@@ -1,18 +1,35 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <!-- TODO: bottlenecked by unity monobehavior, update on CoreCLR -->
-    <TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks>
-    <!-- ImplicitUsings generates a file inside obj/ that unity never sees
-         which could create dependency mismatches -->
-    <ImplicitUsings>disable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <LangVersion>12</LangVersion>
-  </PropertyGroup>
+    <PropertyGroup>
+        <!-- TODO: bottlenecked by unity monobehavior, update on CoreCLR -->
+        <TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks>
+        <!-- ImplicitUsings generates a file inside obj/ that unity never sees
+             which could create dependency mismatches -->
+        <ImplicitUsings>disable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>12</LangVersion>
+    </PropertyGroup>
 
-  <Target Name="CopyToUnity" AfterTargets="Build" Condition="'$(TargetFramework)' == 'netstandard2.1'">
-    <Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb"
-          DestinationFolder="$(MSBuildProjectDirectory)\..\..\Electrode\Assets\Plugins\Brain" />
-  </Target>
+    <Target Name="CopyToUnity" AfterTargets="Build" Condition="'$(TargetFramework)' == 'netstandard2.1' And Exists('$(MSBuildProjectDirectory)\..\..\Electrode')">
+        <Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb"
+              DestinationFolder="$(MSBuildProjectDirectory)\..\..\Electrode\Assets\Plugins\Brain"/>
+    </Target>
+
+    <!-- nuget -->
+    <PropertyGroup>
+        <PackageId>Brain</PackageId>
+        <Version>0.1.0-alpha.1</Version>
+        <Authors>sadlyalive</Authors>
+        <Description>Spiking neural network simulator library</Description>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/sadlyalive/brain</RepositoryUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- disables warnings for no documentation on public members -->
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
 
 </Project>
