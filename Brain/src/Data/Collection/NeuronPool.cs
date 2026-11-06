@@ -21,9 +21,9 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
     private float[] _z = [];
 
     /// <summary>Creates an empty pool with preallocation for <paramref name="capacity" /> neurons.</summary>
-    internal NeuronPool(int capacity)
+    internal NeuronPool(int capacity = 0)
     {
-        Reallocate(Math.Max(capacity, 1));
+        Reallocate(capacity);
     }
 
     /// <summary>External current injection per step (mV/ms)</summary>
@@ -66,40 +66,48 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
 
     public int Capacity => _potential.Length;
 
-    /// <summary>Create a transient struct of the neuron at <paramref name="i" /> for object-oriented wrapping.</summary>
     public Neuron this[int i] => new(this, i);
 
-    /// <summary>Appends a neuron with default parameters and returns its index.</summary>
-    internal int Add()
+    /// <summary>Appends <paramref name="count" /> neurons with default parameters and returns the first neuron's index.</summary>
+    internal int Add(int count = 1)
     {
-        if (Count >= Capacity)
-            Reallocate(Math.Max(Capacity + (Capacity >> 1), Capacity + 1));
+        var first = Count;
+        count += first;
 
-        var i = Count++;
+        if (count > Capacity)
+            Reallocate(Math.Max(Math.Max(count, Capacity + (Capacity >> 1)), Capacity + 1));
 
-        // explicitly write to every field since positions might hold stale data from deleted neurons
-        _inputCurrent[i] = 0f;
+        for (var i = Count; i < count; i++)
+        {
+            // explicitly write to every field since positions might hold stale data from deleted neurons
+            _inputCurrent[i] = 0f;
 
-        // TODO: make customizable. currently biologically-inspired defaults
-        _potential[i]      = -70f; // mV, start at rest
-        _restPotential[i]  = -70f; // mV
-        _resetPotential[i] = -75f; // mV, slight undershoot after a spike
-        _leakRate[i]       = .1f;  // 1/ms
+            // TODO: make customizable. currently biologically-inspired defaults
+            _potential[i]      = -70f; // mV, start at rest
+            _restPotential[i]  = -70f; // mV
+            _resetPotential[i] = -75f; // mV, slight undershoot after a spike
+            _leakRate[i]       = .1f;  // 1/ms
 
-        _lastSpike[i] = double.NegativeInfinity;
-        _threshold[i] = -55f; // mV, ~15 mV of headroom to fire
+            _lastSpike[i] = double.NegativeInfinity;
+            _threshold[i] = -55f; // mV, ~15 mV of headroom to fire
 
-        _x[i] = 0f;
-        _y[i] = 0f;
-        _z[i] = 0f;
+            _x[i] = 0f;
+            _y[i] = 0f;
+            _z[i] = 0f;
+        }
 
-        return i;
+        Count = count;
+
+        return first;
     }
 
     /// <summary>Remove every neuron in O(1) time with a simple counter reset. Arrays remain allocated.</summary>
-    internal void Clear()
+    internal void Clear(bool free = false)
     {
         Count = 0;
+
+        if (free)
+            Reallocate();
     }
 
     /// <summary>
@@ -141,7 +149,7 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
         return last;
     }
 
-    private void Reallocate(int size)
+    private void Reallocate(int size = 0)
     {
         Array.Resize(ref _inputCurrent, size);
 

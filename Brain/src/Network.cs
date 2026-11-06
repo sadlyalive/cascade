@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using Brain.Data;
 using Brain.Data.Collection;
+using Brain.IO;
 
 namespace Brain;
 
@@ -81,15 +83,75 @@ public sealed class Network
     {
         var i = Neurons.Add();
 
-        // adjust metadata arrays if the pool just grew from this addition
-        // ReSharper disable once InvertIf
-        if (_current.Length < Neurons.Capacity)
-        {
-            Array.Resize(ref _current, Neurons.Capacity);
-            Array.Resize(ref _spikes,  Neurons.Capacity);
-        }
+        FitBuffers();
 
         return Neurons[i];
+    }
+
+    /// <summary>Appends <paramref name="count" /> default neurons at once.</summary>
+    /// <returns>The index of the first neuron in the new batch.</returns>
+    internal int AddNeurons(int count)
+    {
+        var first = Neurons.Add(count);
+
+        FitBuffers();
+
+        return first;
+    }
+
+    // adjust metadata arrays if the pool just grew
+    private void FitBuffers()
+    {
+        if (_current.Length >= Neurons.Capacity)
+            return;
+
+        Array.Resize(ref _current, Neurons.Capacity);
+        Array.Resize(ref _spikes,  Neurons.Capacity);
+    }
+
+    /// <summary>
+    ///     Restore <see cref="Time" /> after loading, and with it the spikes the last step produced but hasn't delivered
+    ///     yet. Those are exactly the neurons whose <see cref="NeuronPool.LastSpike" /> equals that time, so files don't
+    ///     need to store the spike list separately.
+    /// </summary>
+    internal void ResumeAt(double time)
+    {
+        Time        = time;
+        _spikeCount = 0;
+
+        var lastSpike = Neurons.LastSpike;
+
+        for (var i = 0; i < lastSpike.Length; i++)
+        {
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            if (lastSpike[i] == time)
+                _spikes[_spikeCount++] = i;
+        }
+    }
+
+    /// <summary>
+    ///     Replace this network's contents with the Brain network file at <paramref name="path" /> (see
+    ///     <see cref="BrainFormat" />). Stays the same object, like <see cref="Clear" />.
+    /// </summary>
+    public void LoadFile(string path)
+    {
+        using var stream = File.OpenRead(path);
+        BrainFormat.Read(stream, this);
+    }
+
+    /// <summary>Write this network to <paramref name="path" /> in the Brain network format (see <see cref="BrainFormat" />).</summary>
+    public void SaveFile(string path)
+    {
+        using var stream = File.Create(path);
+        BrainFormat.Write(this, stream);
+    }
+
+    /// <summary>Create a new network from the Brain network file at <paramref name="path" />.</summary>
+    public static Network FromFile(string path)
+    {
+        var network = new Network();
+        network.LoadFile(path);
+        return network;
     }
 
     /// <summary>
@@ -237,5 +299,6 @@ public sealed class Network
 // in Network.cs because this is mostly for consumers; NeuronPool's swap logic is internal
 public readonly record struct SwapRemove(int Remover, int Successor)
 {
-    public bool IsSwap => Remover != Successor;
+    // NeuronPool.RemoveAt returns -1 for no swap (no successor)
+    public bool IsSwap => Successor >= 0;
 }

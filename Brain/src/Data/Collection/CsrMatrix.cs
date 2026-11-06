@@ -133,6 +133,21 @@ public class CsrMatrix<T>
     }
 
     /// <summary>
+    ///     Replace the whole matrix with already-built CSR arrays, skipping the pending-write path entirely. The caller
+    ///     guarantees they are valid: <paramref name="rowPtr" /> starts at 0 and never decreases, and every row's
+    ///     columns are strictly ascending with no default values.
+    /// </summary>
+    internal void Load(int[] rowPtr, int[] columns, T[] values)
+    {
+        _rowPtr  = rowPtr;
+        _columns = columns;
+        _values  = values;
+
+        _pending    = new Dictionary<Cell, T>();
+        _lastCommit = 0;
+    }
+
+    /// <summary>
     ///     Sort then incorporate all pending writes into the actual matrix. Invokes automatically once the number of
     ///     pending writes reaches <c>max(number non-zero, 128)</c>.
     /// </summary>
