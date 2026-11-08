@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using Brain.Data;
 using Brain.Data.Collection;
@@ -18,14 +19,39 @@ public sealed class Network
     private int   _spikeCount;
 
     /// <summary>Creates a network with preallocation for <paramref name="capacity" /> neurons.</summary>
-    public Network(int capacity = 0)
+    public Network(int capacity = 0) : this(new Connectome<float>(new NeuronPool(capacity)), 0)
     {
-        Neurons    = new NeuronPool(capacity);
-        Connectome = new Connectome<float>(capacity);
+    }
+
+    /// <summary>
+    ///     <para>
+    ///         Creates a network around an already-filled connectome and the pool it was built on, resuming at
+    ///         <paramref name="time" />. Loaders build both first, so a failed read throws before any network exists.
+    ///     </para>
+    ///     <para>
+    ///         Takes the pool from the connectome rather than as its own parameter, so the two can't come from different
+    ///         networks.
+    ///     </para>
+    /// </summary>
+    internal Network(Connectome<float> connectome, double time)
+    {
+        Connectome = connectome;
+        Neurons    = connectome.Pool;
+        Time       = time;
 
         // adhere to pool's final capacity since the raw parameter is consumer-provided
         _current = new float[Neurons.Capacity];
         _spikes  = new int[Neurons.Capacity]; // sized to worst case where every neuron fires on the same step
+
+        // gather spikes that are about to occur so files don't need to explicitly record them
+        var lastSpike = Neurons.LastSpike;
+
+        for (var i = 0; i < lastSpike.Length; i++)
+        {
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            if (lastSpike[i] == time)
+                _spikes[_spikeCount++] = i;
+        }
     }
 
     /// <summary>
@@ -39,7 +65,7 @@ public sealed class Network
     /// </summary>
     public Connectome<float> Connectome { get; }
 
-    /// <summary>SoA for every neuron</summary>
+    /// <summary>SoA for all neurons</summary>
     public NeuronPool Neurons { get; }
 
     public int Count => Neurons.Count;
@@ -51,9 +77,9 @@ public sealed class Network
     public Diagnoser? SpikeDiagnoser       { get; set; }
 
     /// <summary>
-    ///     Raises when <see cref="RemoveNeuron(int)" /> calls and passes <c>(removed, moved)</c>. This is for consumers who
-    ///     store neural indices that risk staleness due to the remove-swap. <c>moved</c> assumes <c>removed</c>'s position.
-    ///     <c> moved = -1</c> implies the last neuron was removed.
+    ///     Raises when <see cref="RemoveNeuron(int)" /> calls. This is for consumers who store neural indices that risk
+    ///     staleness due to a remove-swap. <see cref="SwapRemove.Successor" /> moves to <see cref="SwapRemove.Remover" />
+    ///     unless <see cref="SwapRemove.IsSwap" /> is false.
     /// </summary>
     public event Action<Network, SwapRemove>? NeuronRemoved;
 
@@ -66,8 +92,8 @@ public sealed class Network
     /// </summary>
     public void Clear()
     {
-        Neurons.Clear();
         Connectome.Clear();
+        Neurons.Clear();
 
         _spikeCount = 0;
         Time        = 0;
@@ -83,24 +109,21 @@ public sealed class Network
     {
         var i = Neurons.Add();
 
-        FitBuffers();
+        RefitCaches();
 
         return Neurons[i];
     }
 
-    /// <summary>Appends <paramref name="count" /> default neurons at once.</summary>
-    /// <returns>The index of the first neuron in the new batch.</returns>
-    internal int AddNeurons(int count)
+    public IEnumerable<Neuron> AddNeurons(int count = 1)
     {
-        var first = Neurons.Add(count);
+        var i = Neurons.Add(count);
 
-        FitBuffers();
+        RefitCaches();
 
-        return first;
+        return Neurons[i..];
     }
 
-    // adjust metadata arrays if the pool just grew
-    private void FitBuffers()
+    private void RefitCaches()
     {
         if (_current.Length >= Neurons.Capacity)
             return;
@@ -110,48 +133,41 @@ public sealed class Network
     }
 
     /// <summary>
-    ///     Restore <see cref="Time" /> after loading, and with it the spikes the last step produced but hasn't delivered
-    ///     yet. Those are exactly the neurons whose <see cref="NeuronPool.LastSpike" /> equals that time, so files don't
-    ///     need to store the spike list separately.
+    ///     <para>Create a new network from the Brain network file at <paramref name="path" />.</para>
     /// </summary>
-    internal void ResumeAt(double time)
-    {
-        Time        = time;
-        _spikeCount = 0;
-
-        var lastSpike = Neurons.LastSpike;
-
-        for (var i = 0; i < lastSpike.Length; i++)
-        {
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
-            if (lastSpike[i] == time)
-                _spikes[_spikeCount++] = i;
-        }
-    }
-
-    /// <summary>
-    ///     Replace this network's contents with the Brain network file at <paramref name="path" /> (see
-    ///     <see cref="BrainFormat" />). Stays the same object, like <see cref="Clear" />.
-    /// </summary>
-    public void LoadFile(string path)
-    {
-        using var stream = File.OpenRead(path);
-        BrainFormat.Read(stream, this);
-    }
-
-    /// <summary>Write this network to <paramref name="path" /> in the Brain network format (see <see cref="BrainFormat" />).</summary>
-    public void SaveFile(string path)
-    {
-        using var stream = File.Create(path);
-        BrainFormat.Write(this, stream);
-    }
-
-    /// <summary>Create a new network from the Brain network file at <paramref name="path" />.</summary>
+    /// <exception cref="InvalidDataException">The file isn't a valid Brain network file</exception>
     public static Network FromFile(string path)
     {
         var network = new Network();
-        network.LoadFile(path);
-        return network;
+
+        using var stream = File.OpenRead(path);
+        return FromStream(stream);
+    }
+
+    /// <summary>Create a new <see cref="Network" /> from native Brain format in <paramref name="stream" />.</summary>
+    /// <exception cref="InvalidDataException">The stream isn't a valid Brain network file</exception>
+    public static Network FromStream(Stream stream)
+    {
+        return BrainFormat.Read(stream);
+    }
+
+    /// <summary>
+    ///     Write this network to <paramref name="path" /> in native Brain format. Commits pending changes in the connectome
+    ///     first.
+    /// </summary>
+    public void SaveFile(string path)
+    {
+        using var stream = File.Create(path);
+        Save(stream);
+    }
+
+    /// <summary>
+    ///     Write this network to <paramref name="stream" /> in native Brain format. Commits pending changes in the connectome
+    ///     first.
+    /// </summary>
+    public void Save(Stream stream)
+    {
+        BrainFormat.Write(this, stream);
     }
 
     /// <summary>
@@ -160,8 +176,7 @@ public sealed class Network
     /// </summary>
     public void RemoveNeuron(int i)
     {
-        // uint cast catches i < 0 (what .NET runtime does as well)
-        if ((uint)i >= (uint)Count)
+        if (!Neurons.Exists(i))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(i),
@@ -181,39 +196,48 @@ public sealed class Network
         foreach (var post in Connectome.From(i).Columns)
             Connectome[i, post] = 0f;
 
-        // commit so no stale synapses exist when NeuronPool.RemoveAt() moves the last neuron to the remover's index
+        // commit so the successor's rows below no longer contain synapses to or from `i`. otherwise a severed
+        // `i → successor` would still be listed in To(successor) and get rewritten as `i → i`
         Connectome.CommitChanges();
 
-        // swap-remove
-        var oldI = Neurons.RemoveAt(i);
+        // the pool decides who swaps in; ask before removing so the successor still exists (and passes the
+        // connectome's range check) while its synapses move
+        var successor = Neurons.SuccessorOf(i);
 
-        // move all synapses at the last index to the remover's now-vacant index
-        if (oldI >= 0)
+        if (successor >= 0)
         {
-            foreach (var (pre, weight) in Connectome.To(oldI))
+            foreach (var (pre, weight) in Connectome.To(successor))
             {
-                Connectome[pre, i]    = weight;
-                Connectome[pre, oldI] = 0f;
+                // self-synapse needs an exception since `successor` is about to move to `i`
+                Connectome[pre == successor ? i : pre, i] = weight;
+                Connectome[pre, successor]                = 0f;
             }
 
-            foreach (var (post, weight) in Connectome.From(oldI))
+            foreach (var (post, weight) in Connectome.From(successor))
             {
-                Connectome[i, post]    = weight;
-                Connectome[oldI, post] = 0f;
+                // self-synapse already moved above; handling it again would point it back at `successor`
+                if (post == successor)
+                    continue;
+
+                Connectome[i, post]         = weight;
+                Connectome[successor, post] = 0f;
             }
 
             Connectome.CommitChanges();
         }
 
+        // swap-remove, moving exactly the successor asked for above
+        Neurons.RemoveAt(i);
+
         for (var j = _spikeCount - 1; j >= 0; j--)
         {
             if (_spikes[j] == i)
                 _spikes[j] = _spikes[--_spikeCount]; // swap-remove the dead neuron's spike if present
-            else if (_spikes[j] == oldI)
+            else if (_spikes[j] == successor)
                 _spikes[j] = i; // update the moving neuron's index in the spike list
         }
 
-        NeuronRemoved?.Invoke(this, new SwapRemove(i, oldI));
+        NeuronRemoved?.Invoke(this, new SwapRemove(i, successor));
     }
 
     /// <summary>
