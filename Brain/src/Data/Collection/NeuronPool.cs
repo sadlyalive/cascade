@@ -68,6 +68,17 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
 
     public Neuron this[int i] => new(this, i);
 
+    public IEnumerable<Neuron> this[Range range]
+    {
+        get
+        {
+            var (offset, length) = range.GetOffsetAndLength(Count);
+
+            for (var i = 0; i < length; i++)
+                yield return this[offset + i];
+        }
+    }
+
     /// <summary>Appends <paramref name="count" /> neurons with default parameters and returns the first neuron's index.</summary>
     internal int Add(int count = 1)
     {
@@ -101,7 +112,8 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
         return first;
     }
 
-    /// <summary>Remove every neuron in O(1) time with a simple counter reset. Arrays remain allocated.</summary>
+    /// <summary>Remove every neuron in O(1) time with a simple counter reset.</summary>
+    /// <param name="free">Whether to deallocate all SoA arrays</param>
     internal void Clear(bool free = false)
     {
         Count = 0;
@@ -111,42 +123,64 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
     }
 
     /// <summary>
-    ///     <para>Removes the neuron at <paramref name="i" /> by moving the last neuron into the removing slot.</para>
     ///     <para>
-    ///         Much better than shifting since shifted indices would become stale in other places (most notably the
-    ///         connectome). The caller must still tidy the connectome for the former last neuron's new index (see
-    ///         <see cref="Network" />).
+    ///         Determine what neuron will supersede <paramref name="i" /> after its removal. Allows consumers to prepare for
+    ///         removals. <see cref="Network.RemoveNeuron" /> uses this to patch its connectome before internally executing
+    ///         <see cref="RemoveAt" />.
     ///     </para>
+    ///     <returns>
+    ///         The index of the neuron that <see cref="RemoveAt" /> will move into <paramref name="i" />, or -1 if nothing
+    ///         moves
+    ///     </returns>
     /// </summary>
-    /// <returns>The old index of the neuron that moved into <paramref name="i" />, or -1 if <paramref name="i" /> was last.</returns>
-    internal int RemoveAt(int i)
+    public int SuccessorOf(int i)
     {
-        // single-comparison range check for 0 <= i < Count (see Network.RemoveNeuron)
-        if ((uint)i >= (uint)Count)
+        if (!Exists(i))
             throw new ArgumentOutOfRangeException(nameof(i), i, $"No neuron at index {i} (count {Count})");
 
         var last = Count - 1;
 
+        return i == last ? -1 : last;
+    }
+
+    /// <summary>
+    ///     <para>
+    ///         Remove the neuron at <paramref name="i" /> by replacing it with a successor determined by
+    ///         <see cref="SuccessorOf" />.
+    ///     </para>
+    ///     <para>
+    ///         Much better than shifting since only one index becomes stale rather than all indices in <c>[i, Count)</c>.
+    ///     </para>
+    /// </summary>
+    /// <returns>The successor's old index, or -1 if nothing moved.</returns>
+    internal void RemoveAt(int i)
+    {
+        var successor = SuccessorOf(i); // also range checks
+
         Count--;
 
-        if (i == last)
-            return -1;
+        if (successor < 0)
+            return;
 
-        _inputCurrent[i] = _inputCurrent[last];
+        _inputCurrent[i] = _inputCurrent[successor];
 
-        _potential[i]      = _potential[last];
-        _restPotential[i]  = _restPotential[last];
-        _resetPotential[i] = _resetPotential[last];
-        _leakRate[i]       = _leakRate[last];
+        _potential[i]      = _potential[successor];
+        _restPotential[i]  = _restPotential[successor];
+        _resetPotential[i] = _resetPotential[successor];
+        _leakRate[i]       = _leakRate[successor];
 
-        _lastSpike[i] = _lastSpike[last];
-        _threshold[i] = _threshold[last];
+        _lastSpike[i] = _lastSpike[successor];
+        _threshold[i] = _threshold[successor];
 
-        _x[i] = _x[last];
-        _y[i] = _y[last];
-        _z[i] = _z[last];
+        _x[i] = _x[successor];
+        _y[i] = _y[successor];
+        _z[i] = _z[successor];
+    }
 
-        return last;
+    public bool Exists(int i)
+    {
+        // single-comparison range check for 0 <= i < Count (what .NET BCLs do)
+        return (uint)i < (uint)Count;
     }
 
     private void Reallocate(int size = 0)
