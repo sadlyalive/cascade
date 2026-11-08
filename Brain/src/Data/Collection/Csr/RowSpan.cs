@@ -1,6 +1,6 @@
 using System;
 
-namespace Brain.Data.Collection;
+namespace Brain.Data.Collection.Csr;
 
 // TODO: implement IEnumerable<(int, T)> when CoreCLR releases (ref struct interfaces not supported currently)
 public readonly ref struct RowSpan<T>(ReadOnlySpan<int> columns, ReadOnlySpan<T> values)
