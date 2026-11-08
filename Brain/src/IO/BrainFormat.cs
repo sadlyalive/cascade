@@ -33,7 +33,7 @@ namespace Brain.IO;
 ///         adding a section, not breaking every existing file.
 ///     </para>
 /// </summary>
-public static class BrainFormat
+internal static class BrainFormat
 {
     private const ushort Version = 1;
 
@@ -107,29 +107,14 @@ public static class BrainFormat
     }
 
     /// <summary>
-    ///     Replace <paramref name="network" />'s contents with the file in <paramref name="stream" />. Clears the network
-    ///     first, and clears it again if the file turns out to be invalid, so it's never left half loaded.
+    ///     Build a new network from the file in <paramref name="stream" />. The pool and connectome are filled first and
+    ///     the network is only constructed at the very end, so an invalid file throws before any network exists.
     /// </summary>
     /// <exception cref="InvalidDataException">The stream isn't a valid Brain network file.</exception>
-    public static void Read(Stream stream, Network network)
+    public static Network Read(Stream stream)
     {
         EnsureLittleEndian();
 
-        network.Clear();
-
-        try
-        {
-            ReadSections(stream, network);
-        }
-        catch
-        {
-            network.Clear();
-            throw;
-        }
-    }
-
-    private static void ReadSections(Stream stream, Network network)
-    {
         Span<byte> magic = stackalloc byte[4];
         ReadExactly(stream, magic);
 
@@ -141,29 +126,50 @@ public static class BrainFormat
         if (version > Version)
             throw new InvalidDataException($"File is version {version}, but this Brain only reads up to {Version}");
 
-        var  pool  = network.Neurons;
-        int? count = null;
-        var  time  = 0d;
+        NeuronPool? pool = null;
+        var         time = 0d;
+
+        // outbound CSR arrays from SYNS, turned into a connectome once the pool is final
+        (int[] RowPtr, int[] Columns, float[] Values)? synapses = null;
 
         while (TryReadUInt32(stream, out var tag))
         {
             var length = ReadInt64(stream);
 
+            // a negative length would make Skip seek backwards and reread the same section forever
+            if (length < 0)
+                throw new InvalidDataException($"{TagName(tag)} section has negative length {length}");
+
             if (tag == HeadTag)
             {
-                count = ReadInt32(stream);
-                time  = BitConverter.Int64BitsToDouble(ReadInt64(stream));
+                if (pool is not null)
+                    throw new InvalidDataException("File has more than one HEAD section");
+
+                const long headLength = sizeof(int) + sizeof(double);
+
+                if (length < headLength)
+                    throw new InvalidDataException($"HEAD section is {length} bytes, expected at least {headLength}");
+
+                var count = ReadInt32(stream);
+                time = BitConverter.Int64BitsToDouble(ReadInt64(stream));
 
                 if (count < 0)
                     throw new InvalidDataException($"Negative neuron count {count}");
 
                 // defaults first, so any field this file doesn't have still holds something sane
-                network.AddNeurons(count.Value);
+                pool = new NeuronPool(count);
+                pool.Add(count);
+
+                // a newer Brain may append fields to HEAD; skip whatever this version doesn't know about
+                Skip(stream, length - headLength);
                 continue;
             }
 
             // everything past HEAD is sized by the neuron count
-            var n = count ?? throw new InvalidDataException("HEAD section must come first");
+            if (pool is null)
+                throw new InvalidDataException("HEAD section must come first");
+
+            var n = pool.Count;
 
             if (tag == LastSpikeTag)
             {
@@ -171,7 +177,7 @@ public static class BrainFormat
                 ReadSpan(stream, pool.LastSpike);
             }
             else if (tag == SynapsesTag)
-                ReadSynapses(stream, network, n, length);
+                synapses = ReadSynapses(stream, n, length);
             else if (FindFloatField(tag) is { } field)
             {
                 ExpectLength(tag, length, (long)n * sizeof(float));
@@ -181,13 +187,17 @@ public static class BrainFormat
                 Skip(stream, length); // written by a newer Brain; not ours to understand
         }
 
-        if (count is null)
+        if (pool is null)
             throw new InvalidDataException("File has no HEAD section");
 
-        network.ResumeAt(time);
+        var connectome = synapses is { } s
+            ? new Connectome<float>(pool, s.RowPtr, s.Columns, s.Values)
+            : new Connectome<float>(pool);
+
+        return new Network(connectome, time);
     }
 
-    private static void ReadSynapses(Stream stream, Network network, int count, long length)
+    private static (int[] RowPtr, int[] Columns, float[] Values) ReadSynapses(Stream stream, int count, long length)
     {
         var rowPtr = new int[count + 1];
         ReadSpan<int>(stream, rowPtr);
@@ -231,7 +241,7 @@ public static class BrainFormat
             }
         }
 
-        network.Connectome.Load(count, rowPtr, columns, values);
+        return (rowPtr, columns, values);
     }
 
     private static FloatField? FindFloatField(uint tag)
@@ -378,6 +388,10 @@ public static class BrainFormat
 
         if (stream.CanSeek)
         {
+            // seeking past the end succeeds silently, and the next read would then look like a clean end of file
+            if (length > stream.Length - stream.Position)
+                throw new InvalidDataException("File ends partway through a section");
+
             stream.Seek(length, SeekOrigin.Current);
             return;
         }
