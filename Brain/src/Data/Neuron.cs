@@ -1,5 +1,5 @@
 ﻿using System;
-using Brain.Data.Collection;
+using Brain.Data.Collection.Pool;
 
 namespace Brain.Data;
 

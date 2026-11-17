@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Brain.Data.Collection;
+namespace Brain.Data.Collection.Pool;
 
 public sealed partial class NeuronPool
 {

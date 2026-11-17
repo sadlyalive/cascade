@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Brain.Data.Collection;
+namespace Brain.Data.Collection.Pool;
 
 /// <summary>Storage for every neuron's state in a structure of arrays.</summary>
 public sealed partial class NeuronPool : IEnumerable<Neuron>
@@ -68,16 +68,9 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
 
     public Neuron this[int i] => new(this, i);
 
-    public IEnumerable<Neuron> this[Range range]
-    {
-        get
-        {
-            var (offset, length) = range.GetOffsetAndLength(Count);
-
-            for (var i = 0; i < length; i++)
-                yield return this[offset + i];
-        }
-    }
+    /// <summary>The neurons in <paramref name="range" />, resolved against <see cref="Count" /> right now.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="range" /> reaches past <see cref="Count" /></exception>
+    public NeuronRange this[Range range] => new(this, range, Count);
 
     /// <summary>Appends <paramref name="count" /> neurons with default parameters and returns the first neuron's index.</summary>
     internal int Add(int count = 1)
