@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Brain.Data.Collection.Csr;
+using Brain.Data.Collection.Pool;
 
 namespace Brain.Data.Collection;
 
@@ -20,7 +21,7 @@ public sealed class Connectome<T>
     private const int InitialCommitThreshold = 128;
 
     // dictionary because lookups are very frequent for `Set`
-    private Dictionary<Synapse, T> _pending = new();
+    private Dictionary<Cell, T> _pending = new();
 
     private int _lastCommit;
 
@@ -78,7 +79,8 @@ public sealed class Connectome<T>
     ///     <para>
     ///         Weight changes to existing synapses apply immediately. New and removed synapses are pending until
     ///         <see cref="CommitChanges" />. This indexer can perceive and modify pending writes, but bulk fetches via
-    ///         <see cref="To" /> or <see cref="From" /> cannot.
+    ///         <see cref="To" /> or <see cref="From" /> do not reflect any changes to synapses subject to introduction or
+    ///         removal.
     ///     </para>
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">On write if either neuron doesn't exist.</exception>
@@ -89,12 +91,7 @@ public sealed class Connectome<T>
             VerifyExists(pre, post);
 
             // pending writes are newer and take precedence
-            if (_pending.TryGetValue(new Synapse(pre, post), out var pending))
-                return pending;
-
-            var k = _outbound.IndexOf(pre, post);
-
-            return k < 0 ? default : _outbound.ValueAt(k);
+            return _pending.TryGetValue(new Cell(pre, post), out var pending) ? pending : _outbound[pre, post];
         }
         set => Set(pre, post, value);
     }
@@ -105,7 +102,7 @@ public sealed class Connectome<T>
 
         Version++;
 
-        var synapse = new Synapse(pre, post);
+        var synapse = new Cell(pre, post);
 
         // check for an existing pending write and just overwrite it if present
         if (_pending.ContainsKey(synapse))
@@ -114,23 +111,17 @@ public sealed class Connectome<T>
             return;
         }
 
-        var present = _outbound.IndexOf(pre, post);
-
         if (CsrMatrix<T>.IsDefault(value))
         {
             // removing something that doesn't exist (and isn't pending, see above) changes nothing
-            if (present < 0)
+            if (!_outbound.Exists(pre, post))
                 return;
 
             // arrays have to shrink for removals; fall into modification buffer
         }
-        else if (present >= 0)
+        else if (_outbound.TrySet(pre, post, value!))
         {
-            // quick update in both directions
-            // safe because we already checked pending writes, so no accidental overwrite on commit
-            _outbound.ValueAt(present)                    = value!;
-            _inbound.ValueAt(_inbound.IndexOf(post, pre)) = value!;
-
+            _inbound[post, pre] = value; // bidirectionally update with fail-loud indexer (should never fail)
             return;
         }
 
@@ -157,27 +148,20 @@ public sealed class Connectome<T>
     /// <returns>True if any change was committed and hence a <see cref="Version" /> bump</returns>
     public bool CommitChanges()
     {
+        var changes = _pending.Count;
+
         // skip sort and O(rows + nnz) rebuild so callers can commit defensively
-        if (_pending.Count == 0)
+        if (changes == 0)
             return false;
 
-        var changes = _pending.Count;
-        var batch   = new PendingWrite<T>[changes];
-        var i       = 0;
-
-        foreach (var pair in _pending)
-            batch[i++] = new PendingWrite<T>(pair.Key.Pre, pair.Key.Post, pair.Value);
-
-        Array.Sort(batch);
-
         // the merge sizes itself to the surviving synapses, and transposing swaps those dimensions for inbound
-        _outbound = _outbound.Merge(batch);
+        _outbound = _outbound.Merge(_pending);
         _inbound  = _outbound.Transpose();
 
         // deallocate the entire pending dictionary if this commit was over doubly smaller than the last
         // otherwise reuse it (Dictionary.Clear doesn't shrink the open-hashing buckets back)
         if (changes * 2 < _lastCommit)
-            _pending = new Dictionary<Synapse, T>();
+            _pending = new Dictionary<Cell, T>();
         else
             _pending.Clear();
 
@@ -194,7 +178,7 @@ public sealed class Connectome<T>
         _outbound = new CsrMatrix<T>();
         _inbound  = new CsrMatrix<T>();
 
-        _pending    = new Dictionary<Synapse, T>();
+        _pending    = new Dictionary<Cell, T>();
         _lastCommit = 0;
 
         Version++;
@@ -224,7 +208,7 @@ public sealed class Connectome<T>
 
         var synapse = $"[{pre}, {post}]";
 
-        ThrowRangeException($"Attempt to index nonexistent neuron(s) with synapse {synapse}", synapse);
+        ThrowRangeException($"Attempt to index nonexistent neuron(s) with synapse {synapse}", nameof(synapse));
     }
 
     private void VerifyExists(int i, string name)
@@ -232,8 +216,4 @@ public sealed class Connectome<T>
         if (!Pool.Exists(i))
             ThrowRangeException($"Attempt to index nonexistent neuron {i} in connectome", name);
     }
-
-    // dictionary key for one directed synapse
-    // two synapses may share a hash code, but that only marginally increases collisions
-    private readonly record struct Synapse(int Pre, int Post);
 }

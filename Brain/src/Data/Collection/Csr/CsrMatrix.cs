@@ -6,13 +6,14 @@ namespace Brain.Data.Collection.Csr;
 
 /// <summary>
 ///     <para>
-///         A compressed sparse row matrix with mutable existing values (via <see cref="ValueAt" />) but immutable
+///         A compressed sparse row matrix with mutable existing values (via <see cref="this[int, int]" />) but immutable
 ///         dimensions.
 ///     </para>
 ///     <para>
-///         Dimensions are as tight as the entries allow: <see cref="Rows" /> ends at the last non-empty row, and
-///         <see cref="Width" /> records the highest column. Any reads to nonexistent columns or entire rows just returns
-///         <c>default(T)</c> or an empty <see cref="RowSpan{T}" /> respectively.
+///         Dimensions are only as tight as entries allow. <see cref="Rows" /> ends at the last non-empty row, while
+///         <see cref="Width" /> records the highest column for faster transposition. Any reads to nonexistent columns or
+///         entire rows just returns <c>default(T)</c> or an empty <see cref="RowSpan{T}" /> respectively since this data
+///         structure is agnostic to dimensional constraints.
 ///     </para>
 ///     <para>
 ///         New or dead entries require merging pending writes into a new matrix via <see cref="Merge" />. The
@@ -27,7 +28,7 @@ internal sealed class CsrMatrix<T>
     private readonly T[]   _values;
 
     /// <summary>Create an empty matrix (no rows, no columns).</summary>
-    public CsrMatrix() : this([0], [], [], 0)
+    public CsrMatrix() : this([], [], [], 0)
     {
     }
 
@@ -71,6 +72,48 @@ internal sealed class CsrMatrix<T>
     /// <summary>Number of stored (non-default) entries</summary>
     public int Count => _rowPtr[Rows]; // last row pointer is just the end of the final row
 
+    public T? this[int row, int col]
+    {
+        get
+        {
+            var i = IndexOf(row, col);
+            return i < 0 ? default : _values[i];
+        }
+
+        set
+        {
+            var i = IndexOf(row, col);
+
+            if (i < 0)
+                throw new ArgumentException("In-place CsrMatrix write requires cell to already exist");
+
+            if (IsDefault(value))
+                throw new ArgumentException("In-place CsrMatrix write requires non-default value");
+
+            _values[i] = value!;
+        }
+    }
+
+    public bool TrySet(int row, int col, T value)
+    {
+        if (IsDefault(value))
+        {
+            throw new ArgumentException(
+                $"Attempt to free a cell by writing a value of default({
+                    typeof(T).Name
+                }). Merge into a CsrMatrix with new dimensions instead"
+            );
+        }
+
+        var i = IndexOf(row, col);
+
+        if (i < 0)
+            return false;
+
+        _values[i] = value;
+        return true;
+    }
+
     public RowSpan<T> GetRow(int row)
     {
         // treat nonexistent rows as empty since trailing empty rows aren't stored
@@ -95,42 +138,79 @@ internal sealed class CsrMatrix<T>
         if (!RowExists(row))
             return -1;
 
-        for (var i = _rowPtr[row]; i < _rowPtr[row + 1]; i++)
+        var start  = _rowPtr[row];
+        var end    = _rowPtr[row + 1];
+        var length = end - start;
+
+        // fast path for small rows (linear scan) since it's faster than binary search
+        if (length <= 16)
         {
-            if (_columns[i] == col)
-                return i;
+            for (var i = start; i < end; i++)
+            {
+                var c = _columns[i];
+
+                if (c == col)
+                    return i;
+                if (c > col) // exit early if we reach a higher column (sorted advantage)
+                    return -1;
+            }
+
+            return -1; // empty row or every column is smaller than non-present `col`
         }
 
-        return -1;
+        // binary search default
+        while (length > 1)
+        {
+            var half = length >> 1; // bit shift faster than signed division (safe since indices can't be negative)
+
+            if (_columns[start + half] <= col)
+                start += half;
+
+            length -= half;
+        }
+
+        return _columns[start] == col ? start : -1;
     }
 
-    /// <summary>The value at absolute index <paramref name="i" />. Returns its memory address for in-place writes.</summary>
-    public ref T ValueAt(int i)
+    public bool Exists(int row, int col)
     {
-        return ref _values[i];
+        return IndexOf(row, col) >= 0;
     }
 
     /// <summary>
-    ///     <para>Build a new matrix by merging every pending write in <paramref name="batch" /> into this matrix.</para>
     ///     <para>
-    ///         The batch must be sorted into rows then columns per row so that the merge only requires a single
-    ///         <c>O(rows + entries + writes)</c> pass. That pass already sees every surviving entry, so it also measures
-    ///         the result's exact dimensions for free: it grows to fit new writes and shrinks when the outermost entries
-    ///         are removed. No growth headroom is kept since the pending buffer absorbs growth between merges.
+    ///         Build a new size-frozen <see cref="CsrMatrix{T}" /> by merging every pending write in
+    ///         <paramref name="pending" />
+    ///         to this matrix.
+    ///     </para>
+    ///     <para>
+    ///         Sorts the batch internally to easily determine the highest row with at least one column and perform a two-way
+    ///         merge with this matrix. Expects a dictionary to prohibit same-cell pending writes by design.
     ///     </para>
     /// </summary>
-    /// <param name="batch">Pending writes in ascending <c>(row, column)</c> order without repeats</param>
-    public CsrMatrix<T> Merge(ReadOnlySpan<PendingWrite<T>> batch)
+    /// <param name="pending">
+    ///     Pending writes with <see cref="Cell" /> keys <c>(row, column)</c> and <typeparamref name="T" />
+    ///     values
+    /// </param>
+    public CsrMatrix<T> Merge(IReadOnlyDictionary<Cell, T> pending)
     {
-        if (batch.IsEmpty)
+        var changes = pending.Count;
+
+        if (changes == 0)
             return this;
 
-        // highest present row
-        var rows = Math.Max(Rows, batch[^1].Row + 1);
+        var batch = new PendingWrite<T>[changes];
+        var i     = 0;
 
+        foreach (var pair in pending)
+            batch[i++] = new PendingWrite<T>(pair.Key, pair.Value);
+
+        Array.Sort(batch);
+
+        var rows   = Math.Max(Rows, batch[^1].Row + 1); // highest present row
         var rowPtr = new int[rows + 1];
 
-        // worst case is every write being a new entry; trimmed at the end
+        // worst case is every write being a new entry
         var columns = new int[Count + batch.Length];
         var values  = new T[columns.Length];
 
@@ -194,10 +274,6 @@ internal sealed class CsrMatrix<T>
                 width   = Math.Max(width, col + 1);
             }
         }
-
-        // leftovers can only mean the batch wasn't sorted since the merge loop escaped too early
-        if (batchI < batch.Length)
-            throw new ArgumentException("Pending writes must be sorted by (row, column)", nameof(batch));
 
         // drop trailing empty rows. final end pointer is always nnz
         Array.Resize(ref rowPtr, lastRow + 2);
