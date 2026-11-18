@@ -51,7 +51,7 @@ internal sealed class CsrMatrix<T>
     {
     }
 
-    // for callers that already know the width (merges and transposes), so the columns aren't scanned again
+    // for callers that already know the width (merging and transposing) so columns aren't scanned again
     private CsrMatrix(int[] rowPtr, int[] columns, T[] values, int width)
     {
         _rowPtr  = rowPtr;
@@ -189,10 +189,10 @@ internal sealed class CsrMatrix<T>
     ///     </para>
     /// </summary>
     /// <param name="pending">
-    ///     Pending writes with <see cref="Cell" /> keys <c>(row, column)</c> and <typeparamref name="T" />
+    ///     Pending writes with <see cref="Cell2D" /> keys <c>(row, column)</c> and <typeparamref name="T" />
     ///     values
     /// </param>
-    public CsrMatrix<T> Merge(IReadOnlyDictionary<Cell, T> pending)
+    public CsrMatrix<T> Merge(IReadOnlyDictionary<Cell2D, T> pending)
     {
         var changes = pending.Count;
 
