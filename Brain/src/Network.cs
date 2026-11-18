@@ -109,7 +109,7 @@ public sealed class Network
     {
         var i = Neurons.Append();
 
-        RefitCaches();
+        Reallocate();
 
         return Neurons[i];
     }
@@ -120,12 +120,12 @@ public sealed class Network
     {
         var i = Neurons.Append(count);
 
-        RefitCaches();
+        Reallocate();
 
         return Neurons[i..];
     }
 
-    private void RefitCaches()
+    private void Reallocate()
     {
         if (_current.Length >= Neurons.Capacity)
             return;
@@ -140,8 +140,6 @@ public sealed class Network
     /// <exception cref="InvalidDataException">The file isn't a valid Brain network file</exception>
     public static Network FromFile(string path)
     {
-        var network = new Network();
-
         using var stream = File.OpenRead(path);
         return FromStream(stream);
     }
@@ -322,7 +320,7 @@ public sealed class Network
     }
 }
 
-// in Network.cs because this is mostly for consumers; NeuronPool's swap logic is internal
+// in Network.cs because this is for consumers; NeuronPool's swap logic is internal
 public readonly record struct SwapRemove(int Remover, int Successor)
 {
     // NeuronPool.RemoveAt returns -1 for no swap (no successor)
