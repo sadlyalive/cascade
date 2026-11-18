@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using Brain.Data.Collection;
+using Brain.Data.Collection.Pool;
 
 namespace Brain.IO;
 
@@ -28,9 +29,8 @@ namespace Brain.IO;
 ///         </code>
 ///     </para>
 ///     <para>
-///         Sections are what keep this forward compatible: a reader skips any tag it doesn't know, and a neuron field
-///         missing from an older file just keeps its default. Adding a field (or synaptic delays, plasticity...) means
-///         adding a section, not breaking every existing file.
+///         Sections enable forward compatibility since the reader skips unrecognized tags. Neural attributes missing in
+///         older files just use <see cref="NeuronPool" />'s defaults. Each attribute receives its own section.
 ///     </para>
 /// </summary>
 internal static class BrainFormat
@@ -156,12 +156,12 @@ internal static class BrainFormat
                 if (count < 0)
                     throw new InvalidDataException($"Negative neuron count {count}");
 
-                // defaults first, so any field this file doesn't have still holds something sane
                 pool = new NeuronPool(count);
-                pool.Add(count);
+                pool.Append(count);
 
                 // a newer Brain may append fields to HEAD; skip whatever this version doesn't know about
                 Skip(stream, length - headLength);
+
                 continue;
             }
 
@@ -191,8 +191,8 @@ internal static class BrainFormat
             throw new InvalidDataException("File has no HEAD section");
 
         var connectome = synapses is { } s
-            ? new Connectome<float>(pool, s.RowPtr, s.Columns, s.Values)
-            : new Connectome<float>(pool);
+                             ? new Connectome<float>(pool, s.RowPtr, s.Columns, s.Values)
+                             : new Connectome<float>(pool);
 
         return new Network(connectome, time);
     }
@@ -363,6 +363,7 @@ internal static class BrainFormat
 
         ReadExactly(stream, bytes[read..]);
         value = BinaryPrimitives.ReadUInt32LittleEndian(bytes);
+
         return true;
     }
 
@@ -388,11 +389,12 @@ internal static class BrainFormat
 
         if (stream.CanSeek)
         {
-            // seeking past the end succeeds silently, and the next read would then look like a clean end of file
+            // seeking past the end succeeds silently, next read would then look like a clean EOF
             if (length > stream.Length - stream.Position)
                 throw new InvalidDataException("File ends partway through a section");
 
             stream.Seek(length, SeekOrigin.Current);
+
             return;
         }
 
@@ -401,6 +403,7 @@ internal static class BrainFormat
         while (length > 0)
         {
             var chunk = (int)Math.Min(length, scratch.Length);
+
             ReadExactly(stream, scratch[..chunk]);
             length -= chunk;
         }

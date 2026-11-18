@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using Brain.Data;
 using Brain.Data.Collection;
+using Brain.Data.Collection.Pool;
 using Brain.IO;
 
 namespace Brain;
@@ -107,16 +107,18 @@ public sealed class Network
     /// <returns>The new <see cref="Neuron" /></returns>
     public Neuron AddNeuron()
     {
-        var i = Neurons.Add();
+        var i = Neurons.Append();
 
         RefitCaches();
 
         return Neurons[i];
     }
 
-    public IEnumerable<Neuron> AddNeurons(int count = 1)
+    /// <summary>Create <paramref name="count" /> standalone neurons with default parameters.</summary>
+    /// <returns>The new neurons, which won't grow to include neurons added later</returns>
+    public NeuronRange AddNeurons(int count = 1)
     {
-        var i = Neurons.Add(count);
+        var i = Neurons.Append(count);
 
         RefitCaches();
 

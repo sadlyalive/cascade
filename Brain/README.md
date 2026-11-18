@@ -106,8 +106,8 @@ pool.Potential[neuron1]     = -80f; // write directly to SoA
 pool.RestPotential[neuron1] = -80f;
 ```
 
-You can also create and manipulate multiple neurons at once with `Network.AddNeurons(int count)`, which returns an
-`IEnumerable<Neuron>`:
+You can also create and manipulate multiple neurons at once with `Network.AddNeurons(int count)`, which returns a
+`NeuronRange` you can loop through:
 
 ```csharp
 foreach (Neuron n in network.AddNeurons(1024))
@@ -128,7 +128,7 @@ Neuron neuron = pool[network.Count - 1]; // phew
 
 network.AddNeurons(16); // dang it, not again
 
-IEnumerable<Neuron> neurons = pool[^16..]; // phew
+NeuronRange neurons = pool[^16..]; // phew
 
 foreach (Neuron n in neurons)
     n.MoveTo(-4, -4, -4);

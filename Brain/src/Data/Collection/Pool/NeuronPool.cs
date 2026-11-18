@@ -73,7 +73,7 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
     public NeuronRange this[Range range] => new(this, range, Count);
 
     /// <summary>Appends <paramref name="count" /> neurons with default parameters and returns the first neuron's index.</summary>
-    internal int Add(int count = 1)
+    internal int Append(int count = 1)
     {
         var first = Count;
         count += first;

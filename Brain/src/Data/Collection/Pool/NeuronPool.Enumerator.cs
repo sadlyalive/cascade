@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -6,15 +5,11 @@ namespace Brain.Data.Collection.Pool;
 
 public sealed partial class NeuronPool
 {
-    private const string BoxingAllocationError = "IEnumerable cast forces boxing allocation.";
-
-    [Obsolete(BoxingAllocationError, true)]
     IEnumerator<Neuron> IEnumerable<Neuron>.GetEnumerator()
     {
         return GetEnumerator();
     }
 
-    [Obsolete(BoxingAllocationError, true)]
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
