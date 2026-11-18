@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using Brain.Data.Collection.Pool;
 
 namespace Brain.Data;
@@ -40,6 +41,12 @@ public readonly struct Neuron : IEquatable<Neuron>
     public ref float X => ref _pool.X[_id];
     public ref float Y => ref _pool.Y[_id];
     public ref float Z => ref _pool.Z[_id];
+
+    public Vector3 Position
+    {
+        get => new(X, Y, Z);
+        set => MoveTo(value.X, value.Y, value.Z);
+    }
 
     public void MoveTo(float x, float y, float z)
     {
