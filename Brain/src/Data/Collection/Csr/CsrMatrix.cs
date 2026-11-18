@@ -180,13 +180,12 @@ internal sealed class CsrMatrix<T>
     /// <summary>
     ///     <para>
     ///         Build a new size-frozen <see cref="CsrMatrix{T}" /> by merging every pending write in
-    ///         <paramref name="pending" />
-    ///         to this matrix.
+    ///         <paramref name="pending" /> to this matrix.
     ///     </para>
-    ///     <para>
+    ///     <remarks>
     ///         Sorts the batch internally to easily determine the highest row with at least one column and perform a two-way
     ///         merge with this matrix. Expects a dictionary to prohibit same-cell pending writes by design.
-    ///     </para>
+    ///     </remarks>
     /// </summary>
     /// <param name="pending">
     ///     Pending writes with <see cref="Cell2D" /> keys <c>(row, column)</c> and <typeparamref name="T" />
@@ -291,12 +290,11 @@ internal sealed class CsrMatrix<T>
 
     /// <summary>
     ///     <para>Build the transpose such that entry <c>(r, c)</c> becomes <c>(c, r)</c>.</para>
-    ///     <para>
+    ///     <remarks>
     ///         Employs a counting sort in <c>O(rows + entries)</c> instead of a comparison sort: counts how many entries will
     ///         be in each new row, prefix-sums those counts into row start pointers, then deals every former row into its
-    ///         column slot.
-    ///         Dealing old rows in ascending order leaves every new row already sorted.
-    ///     </para>
+    ///         column slot. Dealing old rows in ascending order leaves every new row already sorted.
+    ///     </remarks>
     /// </summary>
     public CsrMatrix<T> Transpose()
     {
