@@ -18,10 +18,11 @@ namespace Brain.Data.Collection;
 /// <typeparam name="T">Weight value type</typeparam>
 public sealed class Connectome<T>
 {
-    private const int InitialCommitThreshold = 128;
+    private const int InitialCommitThreshold = byte.MaxValue;
+    private const int MaxCommitThreshold     = ushort.MaxValue;
 
     // dictionary because lookups are very frequent for `Set`
-    private Dictionary<Cell, T> _pending = new();
+    private Dictionary<Cell2D, T> _pending = new();
 
     private int _lastCommit;
 
@@ -91,7 +92,7 @@ public sealed class Connectome<T>
             VerifyExists(pre, post);
 
             // pending writes are newer and take precedence
-            return _pending.TryGetValue(new Cell(pre, post), out var pending) ? pending : _outbound[pre, post];
+            return _pending.TryGetValue(new Cell2D(pre, post), out var pending) ? pending : _outbound[pre, post];
         }
         set => Set(pre, post, value);
     }
@@ -102,7 +103,7 @@ public sealed class Connectome<T>
 
         Version++;
 
-        var synapse = new Cell(pre, post);
+        var synapse = new Cell2D(pre, post);
 
         // check for an existing pending write and just overwrite it if present
         if (_pending.ContainsKey(synapse))
@@ -125,10 +126,9 @@ public sealed class Connectome<T>
             return;
         }
 
-        // commit once the buffer holds as many writes as the matrix has entries
-        // a commit costs O(rows + nnz + k log k), so letting k grow with nnz keeps the commit cost per write constant
-        // small matrices will still auto-commit at 128 pending writes
-        if (_pending.Count >= Math.Max(InitialCommitThreshold, _outbound.Count / 2))
+        // commit once the buffer holds half as many writes as the matrix has entries
+        // commits cost O(rows + nnz + k log k), so letting k grow with nnz keeps the commit cost per write constant
+        if (_pending.Count >= Math.Min(MaxCommitThreshold, Math.Max(InitialCommitThreshold, _outbound.Count / 2)))
             CommitChanges();
 
         _pending[synapse] = value!;
@@ -161,7 +161,7 @@ public sealed class Connectome<T>
         // deallocate the entire pending dictionary if this commit was over doubly smaller than the last
         // otherwise reuse it (Dictionary.Clear doesn't shrink the open-hashing buckets back)
         if (changes * 2 < _lastCommit)
-            _pending = new Dictionary<Cell, T>();
+            _pending = new Dictionary<Cell2D, T>();
         else
             _pending.Clear();
 
@@ -178,7 +178,7 @@ public sealed class Connectome<T>
         _outbound = new CsrMatrix<T>();
         _inbound  = new CsrMatrix<T>();
 
-        _pending    = new Dictionary<Cell, T>();
+        _pending    = new Dictionary<Cell2D, T>();
         _lastCommit = 0;
 
         Version++;
