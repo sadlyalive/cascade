@@ -1,6 +1,8 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Brain.Data.Collection.Csr;
 
@@ -198,20 +200,24 @@ internal sealed class CsrMatrix<T>
         if (changes == 0)
             return this;
 
-        var batch = new PendingWrite<T>[changes];
+        var sharedPW  = ArrayPool<PendingWrite<T>>.Shared;
+        var sharedInt = ArrayPool<int>.Shared;
+        var sharedT   = ArrayPool<T>.Shared;
+
+        var batch = sharedPW.Rent(changes);
         var i     = 0;
 
         foreach (var pair in pending)
             batch[i++] = new PendingWrite<T>(pair.Key, pair.Value);
 
-        Array.Sort(batch);
+        Array.Sort(batch, 0, changes);
 
-        var rows   = Math.Max(Rows, batch[^1].Row + 1); // highest present row
-        var rowPtr = new int[rows + 1];
+        var rowCount = Math.Max(Rows, batch[changes - 1].Row + 1); // highest present row + 1
+        var colCount = Count + changes;                            // worst case is every write being a new entry
 
-        // worst case is every write being a new entry
-        var columns = new int[Count + batch.Length];
-        var values  = new T[columns.Length];
+        var rowPtr  = sharedInt.Rent(rowCount + 1);
+        var columns = sharedInt.Rent(colCount);
+        var values  = sharedT.Rent(colCount);
 
         var colI   = 0; // next existing entry
         var batchI = 0; // next pending write
@@ -220,7 +226,7 @@ internal sealed class CsrMatrix<T>
         var lastRow = -1; // last row that kept an entry
         var width   = 0;  // one past the highest kept column
 
-        for (var r = 0; r < rows; r++)
+        for (var r = 0; r < rowCount; r++)
         {
             // end of this row's existing entries. colI is already at its start, and rows past the old matrix have none
             var rowEnd = r < Rows ? _rowPtr[r + 1] : colI;
@@ -230,7 +236,7 @@ internal sealed class CsrMatrix<T>
             while (true)
             {
                 var hasOld   = colI < rowEnd;
-                var hasWrite = batchI < batch.Length && batch[batchI].Row == r;
+                var hasWrite = batchI < changes && batch[batchI].Row == r;
 
                 if (!hasOld && !hasWrite) // nothing else to place in this row
                     break;
@@ -274,18 +280,21 @@ internal sealed class CsrMatrix<T>
             }
         }
 
-        // drop trailing empty rows. final end pointer is always nnz
-        Array.Resize(ref rowPtr, lastRow + 2);
-        rowPtr[lastRow + 1] = nnz;
+        rowPtr[lastRow + 1] = nnz; // final end pointer is always nnz
 
-        // trim worst-case (previous entries + writes) slack to actual nnz
-        if (nnz < columns.Length)
-        {
-            Array.Resize(ref columns, nnz);
-            Array.Resize(ref values,  nnz);
-        }
+        // trim worst-case (old entries + new writes) slack to actual nnz
+        var result = new CsrMatrix<T>(rowPtr[..(lastRow + 2)], columns[..nnz], values[..nnz], width);
 
-        return new CsrMatrix<T>(rowPtr, columns, values, width);
+        // return arrays only after slicing for thread safety
+        sharedPW.Return(batch);
+        sharedInt.Return(rowPtr);
+        sharedInt.Return(columns);
+        sharedT.Return(
+            values,
+            RuntimeHelpers.IsReferenceOrContainsReferences<T>() // clear reference-bound weights for GC
+        );
+
+        return result;
     }
 
     /// <summary>
