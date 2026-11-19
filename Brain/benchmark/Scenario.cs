@@ -39,8 +39,7 @@ internal readonly record struct Scenario(int Neurons, long Synapses, double Rate
     {
         var network = new Network(Neurons);
 
-        for (var i = 0; i < Neurons; i++)
-            network.AddNeuron();
+        network.Append(Neurons);
 
         // separate generators so the wiring stays identical across rates and only the driven set changes
         var wiring = new Random(seed);

@@ -6,9 +6,13 @@ using Brain.Data.Collection.Pool;
 namespace Brain.Data.Collection.Space;
 
 /// <summary>
-///     A helper struct that internally hashes neurons into cubic cells for faster proximal fetches.
+///     A helper class that internally hashes neurons into cubic cells for faster proximal fetches.
 /// </summary>
-public readonly ref struct SpatialQuery
+/// <remarks>
+///     The query buckets neurons into cells once on creation, so <see cref="Poll" />s to a query made prior to neural
+///     relocations, additions, or removals risk staleness.
+/// </remarks>
+public sealed class SpatialQuery
 {
     private readonly Dictionary<Cell3D, List<int>> _cells = new();
 
@@ -63,7 +67,7 @@ public readonly ref struct SpatialQuery
     ///     Find all neurons within <paramref name="radius" /> of neuron <paramref name="neuron" />.
     /// </summary>
     /// <returns>
-    ///     A <see cref="PollResult" /> per neuron that report's the neuron's ID and squared distance from
+    ///     A <see cref="PollResult" /> per proximal neuron that stores the neuron's ID and squared distance from
     ///     <paramref name="neuron" />
     /// </returns>
     // one contiguous span to let the consumer sort without maintaining two parallel spans

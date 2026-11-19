@@ -13,8 +13,7 @@ public sealed class Network
     private float[] _current;
 
     // indices of spiking neurons from the last step. propagation walks this instead of checking every neuron spike
-    // which
-    // would be O(n)
+    // which would be O(n)
     private int[] _spikes;
     private int   _spikeCount;
 
@@ -28,11 +27,10 @@ public sealed class Network
     ///         Creates a network around an already-filled connectome and the pool it was built on, resuming at
     ///         <paramref name="time" />. Loaders build both first, so a failed read throws before any network exists.
     ///     </para>
-    ///     <para>
-    ///         Takes the pool from the connectome rather than as its own parameter, so the two can't come from different
-    ///         networks.
-    ///     </para>
     /// </summary>
+    /// <remarks>
+    ///     Takes the pool from the connectome rather than as its own parameter to guarantee synergy.
+    /// </remarks>
     internal Network(Connectome<float> connectome, double time)
     {
         Connectome = connectome;
@@ -56,13 +54,13 @@ public sealed class Network
 
     /// <summary>
     ///     <para>Tracks both inbound and outbound synapses and weights via two compressed sparse row matrices.</para>
-    ///     <para>
-    ///         Exchanges some algorithmic complexity (and some SIMD and eager caching) for massively less spatial complexity
-    ///         in comparison to conventional dense 2D matrices. <i>Drosophila melanogaster</i>'s brain contains almost 400
-    ///         times more synapses than soma on average, yet CSR still saves over 95% memory since their synaptic density is
-    ///         still nowhere near <c>soma²</c>.
-    ///     </para>
     /// </summary>
+    /// <remarks>
+    ///     Exchanges some algorithmic complexity (and some SIMD and eager caching) for massively less spatial complexity
+    ///     in comparison to conventional dense 2D matrices. <i>Drosophila melanogaster</i>'s brain contains almost 400
+    ///     times more synapses than soma on average, yet CSR still saves over 95% memory since their synaptic density is
+    ///     still nowhere near <c>soma²</c>.
+    /// </remarks>
     public Connectome<float> Connectome { get; }
 
     /// <summary>SoA for all neurons</summary>
@@ -74,7 +72,7 @@ public sealed class Network
     public double Time { get; private set; }
 
     public Diagnoser? IntegrationDiagnoser { get; set; }
-    public Diagnoser? SpikeDiagnoser       { get; set; }
+    public Diagnoser? PropagationDiagnoser { get; set; }
 
     /// <summary>
     ///     Raises when <see cref="RemoveNeuron(int)" /> calls. This is for consumers who store neural indices that risk
@@ -101,28 +99,31 @@ public sealed class Network
         Cleared?.Invoke(this);
     }
 
-    /// <summary>
-    ///     Create a standalone neuron with default parameters.
-    /// </summary>
-    /// <returns>The new <see cref="Neuron" /></returns>
-    public Neuron AddNeuron()
-    {
-        var i = Neurons.Append();
-
-        Reallocate();
-
-        return Neurons[i];
-    }
-
     /// <summary>Create <paramref name="count" /> standalone neurons with default parameters.</summary>
-    /// <returns>The new neurons, which won't grow to include neurons added later</returns>
-    public NeuronRange AddNeurons(int count = 1)
+    /// <returns>The first new neuron's index</returns>
+    /// <remarks>
+    ///     <para>
+    ///         Use <c>new Neuron(Network)</c> to quickly both add and wrap a single new neuron. This method exists for callers
+    ///         that need to efficiently add neurons in bulk and prefer no <see cref="Neuron" />/<see cref="NeuronRange" />
+    ///         wrappers in favor of performance.
+    ///     </para>
+    ///     <para>
+    ///         Does not return an enumerable since <c>yield return</c> runs lazily and can go stale if nothing iterates the
+    ///         range before the pool changes.
+    ///     </para>
+    /// </remarks>
+    public int Append(int count = 1)
     {
         var i = Neurons.Append(count);
 
         Reallocate();
 
-        return Neurons[i..];
+        return i;
+    }
+
+    public NeuronRange AppendAndWrap(int count = 1)
+    {
+        return Neurons[Append(count)..];
     }
 
     private void Reallocate()
@@ -254,7 +255,7 @@ public sealed class Network
         // TODO: change to single-arg Array.Clear(arr) on unity 6.8 CoreCLR
         Array.Clear(_current, 0, _current.Length);
 
-        SpikeDiagnoser?.Start();
+        PropagationDiagnoser?.Start();
 
         // synaptic events delivered this step so the hot loop doesn't repeatedly probe its diagnoser
         var events = 0u;
@@ -273,7 +274,7 @@ public sealed class Network
             events += (uint)row.Count;
         }
 
-        SpikeDiagnoser?.Stop(events);
+        PropagationDiagnoser?.Stop(events);
 
         // store spans in variables to avoid creating a new one per property access
         var inputCurrent = Neurons.InputCurrent;

@@ -38,13 +38,15 @@ public sealed partial class NeuronPool : IEnumerable<Neuron>
     /// <summary>Hyperpolarized potentials after spikes (mV)</summary>
     public Span<float> ResetPotential => _resetPotential.AsSpan(0, Count);
 
-    /// <summary>Leakage speed towards rest (1/ms i.e., greater = leakier)</summary>
+    /// <summary>Leakage speed towards rest (1/ms)</summary>
     public Span<float> LeakRate => _leakRate.AsSpan(0, Count);
 
     /// <summary>
-    ///     <see cref="Network.Time" /> of each neuron's most recent spike (ms), or negative infinity if it never spiked. Uses
-    ///     doubles to mitigate floating-point drift.
+    ///     <see cref="Network.Time" /> of each neuron's most recent spike, or negative infinity if it yet to spike (ms)
     /// </summary>
+    /// <remarks>
+    ///     Uses doubles to mitigate floating-point drift.
+    /// </remarks>
     public Span<double> LastSpike => _lastSpike.AsSpan(0, Count);
 
     /// <summary>Spike thresholds (mV)</summary>

@@ -22,24 +22,72 @@ public readonly struct Neuron : IEquatable<Neuron>
     private readonly int        _id;
     private readonly NeuronPool _pool;
 
+    /// <summary>
+    ///     Create a new neuron in <paramref name="network" />.
+    /// </summary>
+    /// <remarks>
+    ///     Actual parameters for this neuron and every other neuron live in a structure of arrays in
+    ///     <see cref="Network.Neurons" />. This constructor simply wraps the neuron at the new index returned by
+    ///     <see cref="Network.Append" />.
+    /// </remarks>
+    public Neuron(Network network) : this(network.Neurons, network.Append())
+    {
+    }
+
     internal Neuron(NeuronPool pool, int id)
     {
         _pool = pool;
         _id   = id;
     }
 
-    public ref float Potential      => ref _pool.Potential[_id];
-    public ref float RestPotential  => ref _pool.RestPotential[_id];
-    public ref float ResetPotential => ref _pool.ResetPotential[_id];
-    public ref float LeakRate       => ref _pool.LeakRate[_id];
+    /// <summary>
+    ///     Current membrane potential (mV)
+    /// </summary>
+    public ref float Potential => ref _pool.Potential[_id];
 
+    /// <summary>
+    ///     The potential to which the neuron leaks towards (mV)
+    /// </summary>
+    public ref float RestPotential => ref _pool.RestPotential[_id];
+
+    /// <summary>
+    ///     The potential that the neuron hyperpolarizes to after a spike (mV)
+    /// </summary>
+    public ref float ResetPotential => ref _pool.ResetPotential[_id];
+
+    /// <summary>
+    ///     The speed at which the neuron's potential restabilizes (1/ms)
+    /// </summary>
+    public ref float LeakRate => ref _pool.LeakRate[_id];
+
+    /// <summary>
+    ///     External current injection (mV/ms)
+    /// </summary>
     public ref float InputCurrent => ref _pool.InputCurrent[_id];
 
+    /// <summary>
+    ///     <see cref="Network.Time" /> at which the neuron's last spike occurred, or negative infinity if yet to spike (ms)
+    /// </summary>
     public ref double LastSpike => ref _pool.LastSpike[_id];
-    public ref float  Threshold => ref _pool.Threshold[_id];
 
+    /// <summary>
+    ///     Membrane potential at which a spike occurs (mV)
+    /// </summary>
+    public ref float Threshold => ref _pool.Threshold[_id];
+
+    /// <summary>
+    ///     The position of the neuron's soma on the X axis
+    /// </summary>
     public ref float X => ref _pool.X[_id];
+
+    /// <summary>
+    ///     The position of the neuron's soma on the Y axis
+    /// </summary>
     public ref float Y => ref _pool.Y[_id];
+
+    /// <summary>
+    ///     The position of the neuron's soma on the Z axis
+    /// </summary>
     public ref float Z => ref _pool.Z[_id];
 
     public Vector3 Position
