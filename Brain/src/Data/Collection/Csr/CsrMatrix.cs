@@ -12,7 +12,7 @@ namespace Brain.Data.Collection.Csr;
 ///         dimensions.
 ///     </para>
 ///     <para>
-///         Dimensions are only as tight as entries allow. <see cref="Rows" /> ends at the last non-empty row, while
+///         Dimensions are only as tight as entries allow. <see cref="CsrGrid.Rows" /> ends at the last non-empty row, while
 ///         <see cref="Width" /> records the highest column for faster transposition. Any reads to nonexistent columns or
 ///         entire rows just returns <c>default(T)</c> or an empty <see cref="RowSpan{T}" /> respectively since this data
 ///         structure is agnostic to dimensional constraints.
@@ -23,14 +23,12 @@ namespace Brain.Data.Collection.Csr;
 ///         data (i.e., a matrix and its transpose).
 ///     </para>
 /// </summary>
-internal sealed class CsrMatrix<T>
+internal sealed class CsrMatrix<T> : CsrGrid
 {
-    private readonly int[] _rowPtr;
-    private readonly int[] _columns;
-    private readonly T[]   _values;
+    private readonly T[] _values;
 
     /// <summary>Create an empty matrix (no rows, no columns).</summary>
-    public CsrMatrix() : this([], [], [], 0)
+    public CsrMatrix() : this([0], [], [], 0)
     {
     }
 
@@ -54,15 +52,11 @@ internal sealed class CsrMatrix<T>
     }
 
     // for callers that already know the width (merging and transposing) so columns aren't scanned again
-    private CsrMatrix(int[] rowPtr, int[] columns, T[] values, int width)
+    private CsrMatrix(int[] rowPtr, int[] columns, T[] values, int width) : base(rowPtr, columns)
     {
-        _rowPtr  = rowPtr;
-        _columns = columns;
-        _values  = values;
-        Width    = width;
+        _values = values;
+        Width   = width;
     }
-
-    public int Rows => _rowPtr.Length - 1;
 
     /// <summary>
     ///     One past the highest column, i.e., the row count of <see cref="Transpose" />. Exact after a
@@ -72,7 +66,7 @@ internal sealed class CsrMatrix<T>
     public int Width { get; }
 
     /// <summary>Number of stored (non-default) entries</summary>
-    public int Count => _rowPtr[Rows]; // last row pointer is just the end of the final row
+    public int Count => RowPtr[Rows]; // last row pointer is just the end of the final row
 
     public T? this[int row, int col]
     {
@@ -123,10 +117,10 @@ internal sealed class CsrMatrix<T>
         if (!RowExists(row))
             return default;
 
-        var start = _rowPtr[row];
-        var len   = _rowPtr[row + 1] - start;
+        var start = RowPtr[row];
+        var len   = RowPtr[row + 1] - start;
 
-        return new RowSpan<T>(_columns.AsSpan(start, len), _values.AsSpan(start, len));
+        return new RowSpan<T>(Columns.AsSpan(start, len), _values.AsSpan(start, len));
     }
 
     public bool RowExists(int row)
@@ -140,8 +134,8 @@ internal sealed class CsrMatrix<T>
         if (!RowExists(row))
             return -1;
 
-        var start  = _rowPtr[row];
-        var end    = _rowPtr[row + 1];
+        var start  = RowPtr[row];
+        var end    = RowPtr[row + 1];
         var length = end - start;
 
         // fast path for small rows (linear scan) since it's faster than binary search
@@ -149,7 +143,7 @@ internal sealed class CsrMatrix<T>
         {
             for (var i = start; i < end; i++)
             {
-                var c = _columns[i];
+                var c = Columns[i];
 
                 if (c == col)
                     return i;
@@ -165,13 +159,13 @@ internal sealed class CsrMatrix<T>
         {
             var half = length >> 1; // bit shift faster than signed division (safe since indices can't be negative)
 
-            if (_columns[start + half] <= col)
+            if (Columns[start + half] <= col)
                 start += half;
 
             length -= half;
         }
 
-        return _columns[start] == col ? start : -1;
+        return Columns[start] == col ? start : -1;
     }
 
     public bool Exists(int row, int col)
@@ -200,11 +194,11 @@ internal sealed class CsrMatrix<T>
         if (changes == 0)
             return this;
 
-        var sharedPW  = ArrayPool<PendingWrite<T>>.Shared;
+        var sharedPw  = ArrayPool<PendingWrite<T>>.Shared;
         var sharedInt = ArrayPool<int>.Shared;
         var sharedT   = ArrayPool<T>.Shared;
 
-        var batch = sharedPW.Rent(changes);
+        var batch = sharedPw.Rent(changes);
         var i     = 0;
 
         foreach (var pair in pending)
@@ -229,7 +223,7 @@ internal sealed class CsrMatrix<T>
         for (var r = 0; r < rowCount; r++)
         {
             // end of this row's existing entries. colI is already at its start, and rows past the old matrix have none
-            var rowEnd = r < Rows ? _rowPtr[r + 1] : colI;
+            var rowEnd = r < Rows ? RowPtr[r + 1] : colI;
 
             rowPtr[r] = nnz;
 
@@ -243,7 +237,7 @@ internal sealed class CsrMatrix<T>
 
                 // IMPORTANT: batch[batchI] doesn't guaranteeably exist since we don't escape on !hasWrite
                 // pending goes first only if it exists && (no more old columns remain || it comes before this column)
-                var placeWrite = hasWrite && (!hasOld || batch[batchI].Column <= _columns[colI]);
+                var placeWrite = hasWrite && (!hasOld || batch[batchI].Column <= Columns[colI]);
 
                 int col;
                 T   val;
@@ -256,14 +250,14 @@ internal sealed class CsrMatrix<T>
                     val = write.Value;
 
                     // replace/drop the old entry if it exists and is the same column
-                    if (hasOld && _columns[colI] == col)
+                    if (hasOld && Columns[colI] == col)
                         colI++;
 
                     batchI++; // scan pending write
                 }
                 else
                 {
-                    col = _columns[colI];
+                    col = Columns[colI];
                     val = _values[colI];
                     colI++; // scan next column in row
                 }
@@ -286,7 +280,7 @@ internal sealed class CsrMatrix<T>
         var result = new CsrMatrix<T>(rowPtr[..(lastRow + 2)], columns[..nnz], values[..nnz], width);
 
         // return arrays only after slicing for thread safety
-        sharedPW.Return(batch);
+        sharedPw.Return(batch);
         sharedInt.Return(rowPtr);
         sharedInt.Return(columns);
         sharedT.Return(
@@ -316,7 +310,7 @@ internal sealed class CsrMatrix<T>
         var rowPtr = new int[rows + 1];
 
         for (var k = 0; k < nnz; k++)
-            rowPtr[_columns[k] + 1]++;
+            rowPtr[Columns[k] + 1]++;
 
         for (var r = 0; r < rows; r++)
             rowPtr[r + 1] += rowPtr[r];
@@ -328,9 +322,9 @@ internal sealed class CsrMatrix<T>
 
         for (var row = 0; row < Rows; row++)
         {
-            for (var k = _rowPtr[row]; k < _rowPtr[row + 1]; k++)
+            for (var k = RowPtr[row]; k < RowPtr[row + 1]; k++)
             {
-                var slot = cursor[_columns[k]]++;
+                var slot = cursor[Columns[k]]++;
 
                 columns[slot] = row;
                 values[slot]  = _values[k];
